@@ -19,34 +19,39 @@ export const authOptions = {
         password: { label: 'Contraseña', type: 'password' },
       },
       async authorize(credentials: Credentials | undefined): Promise<any> {
-        if (!credentials?.email || !credentials?.password) {
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            return null;
+          }
+
+          await dbConnect();
+
+          const user = await User.findOne({ email: credentials.email });
+
+          if (!user) {
+            return null;
+          }
+
+          if (!user.activo) {
+            throw new Error('Usuario no autorizado. Contacta al administrador.');
+          }
+
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          };
+        } catch (error) {
+          console.error('Error en authorize:', error);
           return null;
         }
-
-        await dbConnect();
-
-        const user = await User.findOne({ email: credentials.email });
-
-        if (!user) {
-          return null;
-        }
-
-        if (!user.activo) {
-          throw new Error('Usuario no autorizado. Contacta al administrador.');
-        }
-
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user._id.toString(),
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
       },
     }),
   ],
@@ -70,7 +75,9 @@ export const authOptions = {
   },
   pages: {
     signIn: '/login',
+    error: '/login',
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
