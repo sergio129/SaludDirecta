@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle, Tag } from 'lucide-react';
+import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle, Tag, Pill } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Product {
@@ -188,41 +188,53 @@ export default function InventoryPage() {
   const categoryOptions = availableCategories.map(cat => cat.nombre);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Package className="h-8 w-8 text-blue-600" />
-              Inventario
-            </h1>
-            <p className="text-gray-600 mt-1">Gestiona el stock y productos de la farmacia</p>
-          </div>
-          <div className="flex gap-3">
-            <Button
-              onClick={() => router.push('/dashboard')}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Volver al Dashboard
-            </Button>
-            <Button
-              onClick={() => router.push('/inventory/categories')}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Tag className="h-4 w-4" />
-              Categorías
-            </Button>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
-                  <Plus className="h-4 w-4" />
-                  Nuevo Producto
-                </Button>
-              </DialogTrigger>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5 -z-10" />
+
+      <div className="container mx-auto px-6 py-8 relative">
+        {/* Modern Header */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg">
+                  <Package className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    Inventario
+                  </h1>
+                  <p className="text-gray-600 text-lg">Gestión inteligente de productos farmacéuticos</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={() => router.push('/dashboard')}
+                variant="outline"
+                className="flex items-center gap-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 shadow-sm"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Dashboard
+              </Button>
+              <Button
+                onClick={() => router.push('/inventory/categories')}
+                variant="outline"
+                className="flex items-center gap-2 border-purple-300 text-purple-700 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 shadow-sm"
+              >
+                <Tag className="h-4 w-4" />
+                Categorías
+              </Button>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                    <Plus className="h-4 w-4" />
+                    Nuevo Producto
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader className="pb-4">
                   <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
@@ -452,124 +464,176 @@ export default function InventoryPage() {
             </Dialog>
           </div>
         </div>
+        </div>
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              Filtros y Búsqueda
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
+        {/* Modern Filters Section */}
+        <div className="mb-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
+                <Search className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Filtros y Búsqueda</h3>
+                <p className="text-sm text-gray-600">Encuentra rápidamente tus productos</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <Input
-                    placeholder="Buscar por nombre, descripción o laboratorio..."
+                    placeholder="Buscar por nombre, código, descripción o laboratorio..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-12 h-12 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-200"
                   />
                 </div>
               </div>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Filtrar por categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las categorías</SelectItem>
-                  {categoryOptions.map((categoryName) => (
-                    <SelectItem key={categoryName} value={categoryName}>
-                      {categoryName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+              <div>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="h-12 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-200">
+                    <SelectValue placeholder="Todas las categorías" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="all" className="rounded-lg">Todas las categorías</SelectItem>
+                    {categoryOptions.map((categoryName) => (
+                      <SelectItem key={categoryName} value={categoryName} className="rounded-lg">
+                        {categoryName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Products Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Productos ({filteredProducts.length})</CardTitle>
-            <CardDescription>
-              Lista completa de productos en inventario
-            </CardDescription>
+        {/* Modern Products Table */}
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-2xl shadow-blue-500/10">
+          <CardHeader className="bg-gradient-to-r from-blue-50/50 to-purple-50/50 border-b border-gray-100/50">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg shadow-lg">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-xl font-bold text-gray-900">Productos ({filteredProducts.length})</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Lista completa de productos en inventario con información detallada
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Producto</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Laboratorio</TableHead>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Código de Barras</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Precio</TableHead>
-                  <TableHead>Estado</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product: Product) => {
-                  const stockStatus = getStockStatus(product);
-                  const StatusIcon = stockStatus.icon;
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-gray-200/50 bg-gradient-to-r from-gray-50/80 to-blue-50/30 hover:from-gray-50 hover:to-blue-50/50 transition-all duration-200">
+                    <TableHead className="font-semibold text-gray-900 py-4 px-6">Producto</TableHead>
+                    <TableHead className="font-semibold text-gray-900 py-4 px-6">Categoría</TableHead>
+                    <TableHead className="font-semibold text-gray-900 py-4 px-6">Laboratorio</TableHead>
+                    <TableHead className="font-semibold text-gray-900 py-4 px-6">Código</TableHead>
+                    <TableHead className="font-semibold text-gray-900 py-4 px-6">Código de Barras</TableHead>
+                    <TableHead className="font-semibold text-gray-900 py-4 px-6">Stock</TableHead>
+                    <TableHead className="font-semibold text-gray-900 py-4 px-6">Precio</TableHead>
+                    <TableHead className="font-semibold text-gray-900 py-4 px-6">Estado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.map((product: Product) => {
+                    const stockStatus = getStockStatus(product);
+                    const StatusIcon = stockStatus.icon;
 
-                  return (
-                    <TableRow key={product._id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{product.nombre}</div>
-                          <div className="text-sm text-gray-500">{product.descripcion}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{product.categoria}</Badge>
-                      </TableCell>
-                      <TableCell>{product.laboratorio}</TableCell>
-                      <TableCell>
-                        <span className="font-mono text-sm">{product.codigo || '-'}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono text-sm">{product.codigoBarras || '-'}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className={`font-medium ${
-                            product.stock <= product.stockMinimo ? 'text-red-600' :
-                            product.stock <= product.stockMinimo * 1.5 ? 'text-yellow-600' : 'text-green-600'
-                          }`}>
-                            {product.stock}
-                          </span>
-                          {product.stock <= product.stockMinimo && (
-                            <StatusIcon className="h-4 w-4 text-red-500" />
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div className="font-medium">${product.precio.toLocaleString()}</div>
-                          <div className="text-gray-500">${product.precioCompra.toLocaleString()}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Badge variant={stockStatus.color as "default" | "secondary" | "destructive" | "outline"}>
-                            {product.activo ? 'Activo' : 'Inactivo'}
+                    return (
+                      <TableRow
+                        key={product._id}
+                        className="border-b border-gray-100/50 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/30 transition-all duration-200 group"
+                      >
+                        <TableCell className="py-4 px-6">
+                          <div className="space-y-1">
+                            <div className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200">
+                              {product.nombre}
+                            </div>
+                            <div className="text-sm text-gray-500 max-w-xs truncate">
+                              {product.descripcion}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 px-6">
+                          <Badge
+                            variant="outline"
+                            className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 text-blue-700 font-medium shadow-sm"
+                          >
+                            {product.categoria}
                           </Badge>
-                          {product.requiereReceta && (
-                            <Badge variant="destructive">Receta</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                        <TableCell className="py-4 px-6">
+                          <span className="text-gray-700 font-medium">{product.laboratorio}</span>
+                        </TableCell>
+                        <TableCell className="py-4 px-6">
+                          <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded-md text-gray-700">
+                            {product.codigo || '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-4 px-6">
+                          <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded-md text-gray-700">
+                            {product.codigoBarras || '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-4 px-6">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-bold text-lg ${
+                              product.stock <= product.stockMinimo ? 'text-red-600' :
+                              product.stock <= product.stockMinimo * 1.5 ? 'text-yellow-600' : 'text-green-600'
+                            }`}>
+                              {product.stock}
+                            </span>
+                            {product.stock <= product.stockMinimo && (
+                              <StatusIcon className="h-5 w-5 text-red-500 animate-pulse" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 px-6">
+                          <div className="space-y-1">
+                            <div className="font-bold text-gray-900 text-lg">
+                              ${product.precio.toLocaleString()}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Compra: ${product.precioCompra.toLocaleString()}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 px-6">
+                          <div className="flex flex-wrap gap-2">
+                            <Badge
+                              variant={stockStatus.color as "default" | "secondary" | "destructive" | "outline"}
+                              className={`font-medium shadow-sm ${
+                                stockStatus.color === 'default' ? 'bg-green-100 text-green-800 border-green-200' :
+                                stockStatus.color === 'destructive' ? 'bg-red-100 text-red-800 border-red-200' :
+                                'bg-gray-100 text-gray-800 border-gray-200'
+                              }`}
+                            >
+                              {product.activo ? 'Activo' : 'Inactivo'}
+                            </Badge>
+                            {product.requiereReceta && (
+                              <Badge
+                                variant="destructive"
+                                className="bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium shadow-sm"
+                              >
+                                <Pill className="h-3 w-3 mr-1" />
+                                Receta
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
