@@ -66,14 +66,12 @@ const ProductSchema: Schema = new Schema({
   codigo: {
     type: String,
     trim: true,
-    unique: true,
-    sparse: true
+    index: { unique: true, sparse: true }
   },
   codigoBarras: {
     type: String,
     trim: true,
-    unique: true,
-    sparse: true
+    index: { unique: true, sparse: true }
   },
   fechaVencimiento: {
     type: Date
@@ -97,8 +95,6 @@ const ProductSchema: Schema = new Schema({
 ProductSchema.index({ nombre: 1 });
 ProductSchema.index({ categoria: 1 });
 ProductSchema.index({ laboratorio: 1 });
-ProductSchema.index({ codigo: 1 });
-ProductSchema.index({ codigoBarras: 1 });
 ProductSchema.index({ activo: 1 });
 ProductSchema.index({ stock: 1 });
 

@@ -201,133 +201,208 @@ export default function InventoryPage() {
                   Nuevo Producto
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>Crear Nuevo Producto</DialogTitle>
-                  <DialogDescription>
-                    Agrega un nuevo producto al inventario
+              <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader className="pb-4">
+                  <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                    <Package className="h-5 w-5 text-blue-600" />
+                    Crear Nuevo Producto
+                  </DialogTitle>
+                  <DialogDescription className="text-gray-600">
+                    Complete la información del producto para agregarlo al inventario
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="nombre" className="text-right">
-                      Nombre
-                    </Label>
-                    <Input
-                      id="nombre"
-                      value={createForm.nombre}
-                      onChange={(e) => setCreateForm({ ...createForm, nombre: e.target.value })}
-                      className="col-span-3"
-                    />
+
+                <div className="space-y-6 py-4">
+                  {/* Sección de Identificación */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Identificación del Producto</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="codigo" className="text-sm font-medium text-gray-700">
+                          Código Interno *
+                        </Label>
+                        <Input
+                          id="codigo"
+                          value={createForm.codigo}
+                          onChange={(e) => setCreateForm({ ...createForm, codigo: e.target.value })}
+                          placeholder="Ej: PROD-001"
+                          className="font-mono"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="codigoBarras" className="text-sm font-medium text-gray-700">
+                          Código de Barras
+                        </Label>
+                        <Input
+                          id="codigoBarras"
+                          value={createForm.codigoBarras}
+                          onChange={(e) => setCreateForm({ ...createForm, codigoBarras: e.target.value })}
+                          placeholder="Escanee o ingrese el código"
+                          className="font-mono"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="descripcion" className="text-right">
-                      Descripción
-                    </Label>
-                    <Input
-                      id="descripcion"
-                      value={createForm.descripcion}
-                      onChange={(e) => setCreateForm({ ...createForm, descripcion: e.target.value })}
-                      className="col-span-3"
-                    />
+
+                  {/* Sección de Información Básica */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Información Básica</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nombre" className="text-sm font-medium text-gray-700">
+                          Nombre del Producto *
+                        </Label>
+                        <Input
+                          id="nombre"
+                          value={createForm.nombre}
+                          onChange={(e) => setCreateForm({ ...createForm, nombre: e.target.value })}
+                          placeholder="Ingrese el nombre completo del producto"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="descripcion" className="text-sm font-medium text-gray-700">
+                          Descripción
+                        </Label>
+                        <Input
+                          id="descripcion"
+                          value={createForm.descripcion}
+                          onChange={(e) => setCreateForm({ ...createForm, descripcion: e.target.value })}
+                          placeholder="Descripción detallada del producto"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="precio" className="text-right">
-                      Precio Venta
-                    </Label>
-                    <Input
-                      id="precio"
-                      type="number"
-                      value={createForm.precio}
-                      onChange={(e) => setCreateForm({ ...createForm, precio: e.target.value })}
-                      className="col-span-3"
-                    />
+
+                  {/* Sección de Precios */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Precios</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="precioCompra" className="text-sm font-medium text-gray-700">
+                          Precio de Compra *
+                        </Label>
+                        <Input
+                          id="precioCompra"
+                          type="number"
+                          step="0.01"
+                          value={createForm.precioCompra}
+                          onChange={(e) => setCreateForm({ ...createForm, precioCompra: e.target.value })}
+                          placeholder="0.00"
+                          className="text-right"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="precio" className="text-sm font-medium text-gray-700">
+                          Precio de Venta *
+                        </Label>
+                        <Input
+                          id="precio"
+                          type="number"
+                          step="0.01"
+                          value={createForm.precio}
+                          onChange={(e) => setCreateForm({ ...createForm, precio: e.target.value })}
+                          placeholder="0.00"
+                          className="text-right"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="precioCompra" className="text-right">
-                      Precio Compra
-                    </Label>
-                    <Input
-                      id="precioCompra"
-                      type="number"
-                      value={createForm.precioCompra}
-                      onChange={(e) => setCreateForm({ ...createForm, precioCompra: e.target.value })}
-                      className="col-span-3"
-                    />
+
+                  {/* Sección de Inventario */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Control de Inventario</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="stock" className="text-sm font-medium text-gray-700">
+                          Stock Inicial *
+                        </Label>
+                        <Input
+                          id="stock"
+                          type="number"
+                          value={createForm.stock}
+                          onChange={(e) => setCreateForm({ ...createForm, stock: e.target.value })}
+                          placeholder="0"
+                          className="text-right"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="stockMinimo" className="text-sm font-medium text-gray-700">
+                          Stock Mínimo *
+                        </Label>
+                        <Input
+                          id="stockMinimo"
+                          type="number"
+                          value={createForm.stockMinimo}
+                          onChange={(e) => setCreateForm({ ...createForm, stockMinimo: e.target.value })}
+                          placeholder="0"
+                          className="text-right"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="stock" className="text-right">
-                      Stock
-                    </Label>
-                    <Input
-                      id="stock"
-                      type="number"
-                      value={createForm.stock}
-                      onChange={(e) => setCreateForm({ ...createForm, stock: e.target.value })}
-                      className="col-span-3"
-                    />
+
+                  {/* Sección de Clasificación */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Clasificación</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="categoria" className="text-sm font-medium text-gray-700">
+                          Categoría *
+                        </Label>
+                        <Input
+                          id="categoria"
+                          value={createForm.categoria}
+                          onChange={(e) => setCreateForm({ ...createForm, categoria: e.target.value })}
+                          placeholder="Ej: Analgésicos, Antibióticos"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="laboratorio" className="text-sm font-medium text-gray-700">
+                          Laboratorio *
+                        </Label>
+                        <Input
+                          id="laboratorio"
+                          value={createForm.laboratorio}
+                          onChange={(e) => setCreateForm({ ...createForm, laboratorio: e.target.value })}
+                          placeholder="Nombre del laboratorio fabricante"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="stockMinimo" className="text-right">
-                      Stock Mínimo
-                    </Label>
-                    <Input
-                      id="stockMinimo"
-                      type="number"
-                      value={createForm.stockMinimo}
-                      onChange={(e) => setCreateForm({ ...createForm, stockMinimo: e.target.value })}
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="categoria" className="text-right">
-                      Categoría
-                    </Label>
-                    <Input
-                      id="categoria"
-                      value={createForm.categoria}
-                      onChange={(e) => setCreateForm({ ...createForm, categoria: e.target.value })}
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="laboratorio" className="text-right">
-                      Laboratorio
-                    </Label>
-                    <Input
-                      id="laboratorio"
-                      value={createForm.laboratorio}
-                      onChange={(e) => setCreateForm({ ...createForm, laboratorio: e.target.value })}
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="codigo" className="text-right">
-                      Código
-                    </Label>
-                    <Input
-                      id="codigo"
-                      value={createForm.codigo}
-                      onChange={(e) => setCreateForm({ ...createForm, codigo: e.target.value })}
-                      className="col-span-3"
-                      placeholder="Código interno del producto"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="codigoBarras" className="text-right">
-                      Código de Barras
-                    </Label>
-                    <Input
-                      id="codigoBarras"
-                      value={createForm.codigoBarras}
-                      onChange={(e) => setCreateForm({ ...createForm, codigoBarras: e.target.value })}
-                      className="col-span-3"
-                      placeholder="Código de barras del producto"
-                    />
+
+                  {/* Sección de Configuración */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Configuración</h3>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="requiereReceta"
+                        checked={createForm.requiereReceta}
+                        onChange={(e) => setCreateForm({ ...createForm, requiereReceta: e.target.checked })}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <Label htmlFor="requiereReceta" className="text-sm font-medium text-gray-700">
+                        Requiere receta médica
+                      </Label>
+                    </div>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button type="submit" onClick={createProduct} className="bg-blue-600 hover:bg-blue-700">
+
+                <DialogFooter className="border-t pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsCreateDialogOpen(false)}
+                    className="mr-2"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    onClick={createProduct}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
                     Crear Producto
                   </Button>
                 </DialogFooter>
