@@ -54,10 +54,6 @@ export default function CategoriesPage() {
     fetchCategories();
   }, [session, status, router]);
 
-  useEffect(() => {
-    filterCategories();
-  }, [categories, searchTerm, statusFilter]);
-
   const fetchCategories = async () => {
     try {
       const response = await fetch('/api/categories');
@@ -93,6 +89,10 @@ export default function CategoriesPage() {
 
     setFilteredCategories(filtered);
   };
+
+  useEffect(() => {
+    filterCategories();
+  }, [categories, searchTerm, statusFilter, filterCategories]);
 
   const createCategory = async () => {
     if (!createForm.nombre.trim()) {

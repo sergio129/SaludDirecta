@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -29,16 +29,6 @@ interface Product {
   requiereReceta: boolean;
   activo: boolean;
   fechaCreacion: string;
-}
-
-interface SaleItem {
-  producto: string;
-  nombreProducto: string;
-  cantidad: number;
-  precioUnitario: number;
-  precioTotal: number;
-  tipoVenta: 'unidad' | 'caja';
-  unidadesPorCaja?: number;
 }
 
 interface Sale {
@@ -75,9 +65,7 @@ export default function SalesPage() {
     setMetodoPago,
     setNotas,
     addToCart,
-    updateCartItem,
     removeFromCart,
-    clearCart,
     calculateSubtotal,
     calculateTotal,
     processSale
@@ -105,14 +93,6 @@ export default function SalesPage() {
     fetchProducts();
   }, [session, status, router]);
 
-  useEffect(() => {
-    filterSales();
-  }, [sales, searchTerm, statusFilter]);
-
-  useEffect(() => {
-    filterProducts();
-  }, [products, productSearchTerm]);
-
   const fetchSales = async () => {
     try {
       const response = await fetch('/api/sales');
@@ -130,7 +110,7 @@ export default function SalesPage() {
     }
   };
 
-  const filterSales = () => {
+  const filterSales = useCallback(() => {
     let filtered = sales;
 
     if (searchTerm) {
@@ -146,7 +126,11 @@ export default function SalesPage() {
     }
 
     setFilteredSales(filtered);
-  };
+  }, [sales, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    filterSales();
+  }, [sales, searchTerm, statusFilter, filterSales]);
 
   const fetchProducts = async () => {
     try {
@@ -165,7 +149,7 @@ export default function SalesPage() {
     }
   };
 
-  const filterProducts = () => {
+  const filterProducts = useCallback(() => {
     if (!productSearchTerm) {
       setFilteredProducts(products);
       return;
@@ -178,7 +162,11 @@ export default function SalesPage() {
     );
 
     setFilteredProducts(filtered);
-  };
+  }, [products, productSearchTerm]);
+
+  useEffect(() => {
+    filterProducts();
+  }, [products, productSearchTerm, filterProducts]);
 
   const createSale = async () => {
     await processSale();

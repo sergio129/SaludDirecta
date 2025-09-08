@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -76,10 +76,6 @@ export default function InventoryPage() {
     fetchCategories();
   }, [session, status, router]);
 
-  useEffect(() => {
-    filterProducts();
-  }, [products, searchTerm, categoryFilter]);
-
   // Cerrar combobox de categoría al hacer clic fuera o presionar Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -150,7 +146,7 @@ export default function InventoryPage() {
 
   const categoryOptions = availableCategories.map(cat => cat.nombre);
 
-  const filterProducts = () => {
+  const filterProducts = useCallback(() => {
     let filtered = products;
 
     // Primero filtrar por categoría (si no es "all")
@@ -175,7 +171,11 @@ export default function InventoryPage() {
     }
 
     setFilteredProducts(filtered);
-  };
+  }, [products, searchTerm, categoryFilter, normalizeText]);
+
+  useEffect(() => {
+    filterProducts();
+  }, [products, searchTerm, categoryFilter, filterProducts]);
 
   const createProduct = async () => {
     try {

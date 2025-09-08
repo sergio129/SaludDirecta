@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const categoria = searchParams.get('categoria');
     const activo = searchParams.get('activo');
 
-    let query: any = {};
+    const query: any = {};
 
     // Filtro por búsqueda (nombre, código, código de barras)
     if (search) {
