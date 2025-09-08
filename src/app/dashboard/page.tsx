@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -58,7 +59,94 @@ export default function Dashboard() {
     }
   ];
 
-  const stats = [
+  const [stats, setStats] = useState([
+    {
+      title: 'Total Productos',
+      value: '0',
+      change: 0,
+      changeType: 'positive' as const,
+      icon: Package,
+      color: 'text-blue-600'
+    },
+    {
+      title: 'Ventas Hoy',
+      value: '$0',
+      change: 0,
+      changeType: 'positive' as const,
+      icon: TrendingUp,
+      color: 'text-green-600'
+    },
+    {
+      title: 'Usuarios Activos',
+      value: '0',
+      change: 0,
+      changeType: 'positive' as const,
+      icon: Users,
+      color: 'text-purple-600'
+    },
+    {
+      title: 'Pedidos Pendientes',
+      value: '0',
+      change: 0,
+      changeType: 'positive' as const,
+      icon: ShoppingCart,
+      color: 'text-orange-600'
+    }
+  ]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/stats');
+      if (response.ok) {
+        const data = await response.json();
+        setStats([
+          {
+            title: 'Total Productos',
+            value: data.totalProductos.value,
+            change: data.totalProductos.change,
+            changeType: data.totalProductos.changeType,
+            icon: Package,
+            color: 'text-blue-600'
+          },
+          {
+            title: 'Ventas Hoy',
+            value: data.ventasHoy.value,
+            change: data.ventasHoy.change,
+            changeType: data.ventasHoy.changeType,
+            icon: TrendingUp,
+            color: 'text-green-600'
+          },
+          {
+            title: 'Usuarios Activos',
+            value: data.usuariosActivos.value,
+            change: data.usuariosActivos.change,
+            changeType: data.usuariosActivos.changeType,
+            icon: Users,
+            color: 'text-purple-600'
+          },
+          {
+            title: 'Pedidos Pendientes',
+            value: data.pedidosPendientes.value,
+            change: data.pedidosPendientes.change,
+            changeType: data.pedidosPendientes.changeType,
+            icon: ShoppingCart,
+            color: 'text-orange-600'
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stats_old = [
     {
       title: 'Total Productos',
       value: '1,234',
@@ -134,9 +222,19 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    <p className={`text-sm font-medium ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                      {stat.change} vs ayer
+                    <p className="text-2xl font-bold text-gray-900">
+                      {loading ? (
+                        <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
+                      ) : (
+                        stat.value
+                      )}
+                    </p>
+                    <p className={`text-sm font-medium ${stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'}`}>
+                      {loading ? (
+                        <div className="animate-pulse bg-gray-200 h-4 w-12 rounded"></div>
+                      ) : (
+                        `${stat.change >= 0 ? '+' : ''}${stat.change}% vs ayer`
+                      )}
                     </p>
                   </div>
                   <div className={`p-3 rounded-lg bg-gradient-to-br ${stat.color.replace('text-', 'from-').replace('text-', 'to-')} bg-opacity-10`}>
