@@ -154,14 +154,14 @@ export function FloatingCart() {
 
   if (!isCartOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50">
         <Button
           onClick={() => setIsCartOpen(true)}
-          className="relative bg-blue-600 hover:bg-blue-700 text-white rounded-full w-16 h-16 shadow-lg hover:shadow-xl transition-all duration-200"
+          className="relative bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 md:w-16 md:h-16 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
         >
-          <ShoppingCart className="w-6 h-6" />
+          <ShoppingCart className="w-6 h-6 md:w-7 md:h-7" />
           {cart.length > 0 && (
-            <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+            <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center font-bold">
               {cart.length}
             </Badge>
           )}
@@ -171,9 +171,9 @@ export function FloatingCart() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 md:p-4">
-      <Card className="w-full max-w-7xl h-[95vh] md:h-[90vh] overflow-hidden flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
+      <Card className="w-full max-w-4xl lg:max-w-7xl h-[95vh] md:h-[90vh] overflow-hidden flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b px-4 sm:px-6">
           <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <ShoppingCart className="w-5 h-5" />
             Carrito de Ventas
@@ -191,11 +191,11 @@ export function FloatingCart() {
           </Button>
         </CardHeader>
 
-        <CardContent className="flex-1 overflow-hidden flex flex-col lg:flex-row gap-4 md:gap-6 p-4 md:p-6">
+        <CardContent className="flex-1 overflow-hidden flex flex-col lg:flex-row gap-4 md:gap-6 p-4 sm:p-6 relative">
           {/* Panel izquierdo - Búsqueda y productos del carrito */}
-          <div className="flex-1 flex flex-col min-w-0 lg:min-h-0">
+          <div className="flex-1 flex flex-col min-w-0 lg:min-h-0 overflow-hidden">
             {/* Sección de búsqueda */}
-            <div className="space-y-4 mb-4 md:mb-6">
+            <div className="space-y-4 mb-4 md:mb-6 relative z-10">
               {/* Búsqueda por código de barras */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -216,15 +216,25 @@ export function FloatingCart() {
                     onClick={handleBarcodeScan}
                     disabled={isScanning || !barcodeInput.trim()}
                     variant="outline"
-                    className="w-full sm:w-auto"
+                    className="w-full sm:w-auto bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300"
                   >
-                    {isScanning ? 'Escaneando...' : 'Escanear'}
+                    {isScanning ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                        Escaneando...
+                      </>
+                    ) : (
+                      <>
+                        <ScanLine className="w-4 h-4 mr-2" />
+                        Escanear
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
 
               {/* Búsqueda por nombre/código */}
-              <div className="space-y-2" data-search-container>
+              <div className="space-y-2 relative" data-search-container>
                 <div className="flex items-center gap-2">
                   <Search className="w-4 h-4" />
                   <Label htmlFor="search" className="text-sm md:text-base">Buscar Productos</Label>
@@ -249,42 +259,63 @@ export function FloatingCart() {
 
                 {/* Resultados de búsqueda */}
                 {showSearchResults && searchResults.length > 0 && (
-                  <Card className="absolute z-10 w-full mt-1 max-h-48 md:max-h-60 overflow-y-auto shadow-lg border">
-                    <CardContent className="p-2">
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                    <div className="p-2">
                       {searchResults.map((product) => (
                         <div
                           key={product._id}
-                          className="flex items-center justify-between p-2 md:p-3 hover:bg-gray-50 rounded-lg cursor-pointer border-b last:border-b-0"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 hover:bg-gray-50 rounded-lg cursor-pointer border-b last:border-b-0 gap-2 sm:gap-3"
                           onClick={() => handleAddProductFromSearch(product)}
                         >
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate">{product.nombre}</div>
-                            <div className="text-xs text-gray-500 flex flex-wrap items-center gap-1 md:gap-2">
-                              {product.codigo && <span>Código: {product.codigo}</span>}
-                              {product.codigoBarras && <span>C.B: {product.codigoBarras}</span>}
-                              <span>Stock: {product.stock}</span>
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="font-medium text-sm md:text-base truncate">{product.nombre}</div>
+                            <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-1 sm:gap-2 text-xs text-gray-500">
+                              {product.codigo && (
+                                <span className="bg-gray-100 px-2 py-1 rounded text-xs">
+                                  Código: {product.codigo}
+                                </span>
+                              )}
+                              {product.codigoBarras && (
+                                <span className="bg-gray-100 px-2 py-1 rounded text-xs">
+                                  C.B: {product.codigoBarras}
+                                </span>
+                              )}
+                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                                Stock: {product.stock}
+                              </span>
                             </div>
                           </div>
-                          <div className="text-right ml-2">
-                            <div className="font-medium text-sm">${product.precio.toFixed(2)}</div>
-                            <Button size="sm" variant="outline" className="text-xs h-6 mt-1">
+                          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3 ml-0 sm:ml-2">
+                            <div className="font-bold text-sm md:text-base text-green-600">
+                              ${product.precio.toFixed(2)}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-8 px-3 bg-green-50 hover:bg-green-100 border-green-200 hover:border-green-300"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddProductFromSearch(product);
+                              }}
+                            >
                               <Plus className="w-3 h-3 mr-1" />
-                              Agregar
+                              <span className="hidden sm:inline">Agregar</span>
+                              <span className="sm:hidden">+</span>
                             </Button>
                           </div>
                         </div>
                       ))}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 )}
 
                 {showSearchResults && searchResults.length === 0 && searchTerm.trim() && !isSearching && (
-                  <Card className="absolute z-10 w-full mt-1 shadow-lg border">
-                    <CardContent className="p-4 text-center text-gray-500">
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl">
+                    <div className="p-4 text-center text-gray-500">
                       <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
                       <p>No se encontraron productos</p>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -306,50 +337,58 @@ export function FloatingCart() {
                 ) : (
                   cart.map((item) => (
                     <div key={item.producto} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 border rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors gap-3">
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 space-y-1">
                         <h4 className="font-medium text-gray-900 truncate text-sm md:text-base">{item.nombreProducto}</h4>
-                        <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm text-gray-600 mt-1">
-                          <span className="font-medium">${item.precioUnitario.toFixed(2)}</span>
+                        <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-gray-600">
+                          <span className="font-medium bg-white px-2 py-1 rounded border">
+                            ${item.precioUnitario.toFixed(2)} c/u
+                          </span>
                           <Badge variant="outline" className="text-xs">
                             {item.tipoVenta === 'caja' ? `Caja (${item.unidadesPorCaja} und)` : 'Unidad'}
                           </Badge>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateCartItem(item.producto, Math.max(1, item.cantidad - 1))}
-                            className="h-7 w-7 md:h-8 md:w-8 p-0"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </Button>
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 w-full sm:w-auto">
+                        <div className="flex items-center gap-2 sm:gap-3 justify-center sm:justify-end">
+                          <div className="flex items-center gap-1 bg-white rounded-lg border p-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateCartItem(item.producto, Math.max(1, item.cantidad - 1))}
+                              className="h-8 w-8 p-0 hover:bg-red-50 hover:border-red-200"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </Button>
 
-                          <span className="w-8 md:w-12 text-center font-medium text-sm">{item.cantidad}</span>
+                            <span className="w-10 text-center font-bold text-sm bg-gray-50 rounded px-2 py-1">
+                              {item.cantidad}
+                            </span>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateCartItem(item.producto, item.cantidad + 1)}
+                              className="h-8 w-8 p-0 hover:bg-green-50 hover:border-green-200"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
 
                           <Button
-                            variant="outline"
+                            variant="destructive"
                             size="sm"
-                            onClick={() => updateCartItem(item.producto, item.cantidad + 1)}
-                            className="h-7 w-7 md:h-8 md:w-8 p-0"
+                            onClick={() => removeFromCart(item.producto)}
+                            className="h-8 w-8 p-0"
                           >
-                            <Plus className="w-3 h-3" />
+                            <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
 
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => removeFromCart(item.producto)}
-                          className="h-7 w-7 md:h-8 md:w-8 p-0"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-
-                        <div className="text-right min-w-[60px] md:min-w-[80px]">
-                          <p className="font-bold text-gray-900 text-sm md:text-base">${item.precioTotal.toFixed(2)}</p>
+                        <div className="text-right min-w-[80px] bg-white px-3 py-2 rounded-lg border">
+                          <p className="font-bold text-gray-900 text-sm md:text-base">
+                            ${item.precioTotal.toFixed(2)}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -370,32 +409,34 @@ export function FloatingCart() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div>
-                  <Label htmlFor="cliente-nombre" className="text-sm">Nombre</Label>
-                  <Input
-                    id="cliente-nombre"
-                    placeholder="Nombre del cliente"
-                    value={cliente.nombre}
-                    onChange={(e) => setCliente({ ...cliente, nombre: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cliente-cedula" className="text-sm">Cédula</Label>
-                  <Input
-                    id="cliente-cedula"
-                    placeholder="Cédula del cliente"
-                    value={cliente.cedula}
-                    onChange={(e) => setCliente({ ...cliente, cedula: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cliente-telefono" className="text-sm">Teléfono</Label>
-                  <Input
-                    id="cliente-telefono"
-                    placeholder="Teléfono del cliente"
-                    value={cliente.telefono}
-                    onChange={(e) => setCliente({ ...cliente, telefono: e.target.value })}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="cliente-nombre" className="text-sm">Nombre</Label>
+                    <Input
+                      id="cliente-nombre"
+                      placeholder="Nombre del cliente"
+                      value={cliente.nombre}
+                      onChange={(e) => setCliente({ ...cliente, nombre: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cliente-cedula" className="text-sm">Cédula</Label>
+                    <Input
+                      id="cliente-cedula"
+                      placeholder="Cédula del cliente"
+                      value={cliente.cedula}
+                      onChange={(e) => setCliente({ ...cliente, cedula: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cliente-telefono" className="text-sm">Teléfono</Label>
+                    <Input
+                      id="cliente-telefono"
+                      placeholder="Teléfono del cliente"
+                      value={cliente.telefono}
+                      onChange={(e) => setCliente({ ...cliente, telefono: e.target.value })}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
