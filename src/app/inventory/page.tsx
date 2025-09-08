@@ -10,8 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle, Tag, Pill } from 'lucide-react';
+import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle, Tag, Pill, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Product {
@@ -41,6 +42,10 @@ export default function InventoryPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [availableCategories, setAvailableCategories] = useState<{ _id: string; nombre: string; activo: boolean }[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [createForm, setCreateForm] = useState({
     nombre: '',
     descripcion: '',
@@ -159,6 +164,98 @@ export default function InventoryPage() {
       }
     } catch (error) {
       console.error('Error creating product:', error);
+      toast.error('Error de conexión');
+    }
+  };
+
+  const openEditDialog = (product: Product) => {
+    setEditingProduct(product);
+    setCreateForm({
+      nombre: product.nombre,
+      descripcion: product.descripcion,
+      precio: product.precio.toString(),
+      precioCompra: product.precioCompra.toString(),
+      stock: product.stock.toString(),
+      stockMinimo: product.stockMinimo.toString(),
+      categoria: product.categoria,
+      laboratorio: product.laboratorio,
+      codigo: product.codigo || '',
+      codigoBarras: product.codigoBarras || '',
+      requiereReceta: product.requiereReceta
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const updateProduct = async () => {
+    if (!editingProduct) return;
+
+    try {
+      const response = await fetch(`/api/products/${editingProduct._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...createForm,
+          precio: parseFloat(createForm.precio),
+          precioCompra: parseFloat(createForm.precioCompra),
+          stock: parseInt(createForm.stock),
+          stockMinimo: parseInt(createForm.stockMinimo)
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Producto actualizado exitosamente');
+        setIsEditDialogOpen(false);
+        setEditingProduct(null);
+        setCreateForm({
+          nombre: '',
+          descripcion: '',
+          precio: '',
+          precioCompra: '',
+          stock: '',
+          stockMinimo: '',
+          categoria: '',
+          laboratorio: '',
+          codigo: '',
+          codigoBarras: '',
+          requiereReceta: false
+        });
+        fetchProducts();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Error al actualizar producto');
+      }
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast.error('Error de conexión');
+    }
+  };
+
+  const openDeleteDialog = (product: Product) => {
+    setProductToDelete(product);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const deleteProduct = async () => {
+    if (!productToDelete) return;
+
+    try {
+      const response = await fetch(`/api/products/${productToDelete._id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast.success('Producto eliminado exitosamente');
+        setIsDeleteDialogOpen(false);
+        setProductToDelete(null);
+        fetchProducts();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Error al eliminar producto');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
       toast.error('Error de conexión');
     }
   };
@@ -464,6 +561,236 @@ export default function InventoryPage() {
             </Dialog>
           </div>
         </div>
+
+        {/* Edit Product Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="pb-4">
+              <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Edit className="h-5 w-5 text-blue-600" />
+                Editar Producto
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                Modifique la información del producto según sea necesario
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 py-4">
+              {/* Sección de Identificación */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Identificación del Producto</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-codigo" className="text-sm font-medium text-gray-700">
+                      Código Interno
+                    </Label>
+                    <Input
+                      id="edit-codigo"
+                      value={createForm.codigo}
+                      onChange={(e) => setCreateForm({ ...createForm, codigo: e.target.value })}
+                      placeholder="Ej: PROD-001"
+                      className="font-mono"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-codigoBarras" className="text-sm font-medium text-gray-700">
+                      Código de Barras
+                    </Label>
+                    <Input
+                      id="edit-codigoBarras"
+                      value={createForm.codigoBarras}
+                      onChange={(e) => setCreateForm({ ...createForm, codigoBarras: e.target.value })}
+                      placeholder="Escanee o ingrese el código"
+                      className="font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección de Información Básica */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Información Básica</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-nombre" className="text-sm font-medium text-gray-700">
+                      Nombre del Producto *
+                    </Label>
+                    <Input
+                      id="edit-nombre"
+                      value={createForm.nombre}
+                      onChange={(e) => setCreateForm({ ...createForm, nombre: e.target.value })}
+                      placeholder="Ingrese el nombre completo del producto"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-descripcion" className="text-sm font-medium text-gray-700">
+                      Descripción
+                    </Label>
+                    <Input
+                      id="edit-descripcion"
+                      value={createForm.descripcion}
+                      onChange={(e) => setCreateForm({ ...createForm, descripcion: e.target.value })}
+                      placeholder="Descripción detallada del producto"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección de Precios */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Precios</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-precioCompra" className="text-sm font-medium text-gray-700">
+                      Precio de Compra *
+                    </Label>
+                    <Input
+                      id="edit-precioCompra"
+                      type="number"
+                      step="0.01"
+                      value={createForm.precioCompra}
+                      onChange={(e) => setCreateForm({ ...createForm, precioCompra: e.target.value })}
+                      placeholder="0.00"
+                      className="text-right"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-precio" className="text-sm font-medium text-gray-700">
+                      Precio de Venta *
+                    </Label>
+                    <Input
+                      id="edit-precio"
+                      type="number"
+                      step="0.01"
+                      value={createForm.precio}
+                      onChange={(e) => setCreateForm({ ...createForm, precio: e.target.value })}
+                      placeholder="0.00"
+                      className="text-right"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección de Inventario */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Control de Inventario</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-stock" className="text-sm font-medium text-gray-700">
+                      Stock Actual *
+                    </Label>
+                    <Input
+                      id="edit-stock"
+                      type="number"
+                      value={createForm.stock}
+                      onChange={(e) => setCreateForm({ ...createForm, stock: e.target.value })}
+                      placeholder="0"
+                      className="text-right"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-stockMinimo" className="text-sm font-medium text-gray-700">
+                      Stock Mínimo *
+                    </Label>
+                    <Input
+                      id="edit-stockMinimo"
+                      type="number"
+                      value={createForm.stockMinimo}
+                      onChange={(e) => setCreateForm({ ...createForm, stockMinimo: e.target.value })}
+                      placeholder="0"
+                      className="text-right"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección de Clasificación */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Clasificación</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="edit-categoria" className="text-sm font-medium text-gray-700">
+                        Categoría *
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        onClick={() => router.push('/inventory/categories')}
+                        className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                      >
+                        Gestionar categorías
+                      </Button>
+                    </div>
+                    <Select
+                      value={createForm.categoria}
+                      onValueChange={(value) => setCreateForm({ ...createForm, categoria: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una categoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCategories.map((category) => (
+                          <SelectItem key={category._id} value={category.nombre}>
+                            {category.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-laboratorio" className="text-sm font-medium text-gray-700">
+                      Laboratorio *
+                    </Label>
+                    <Input
+                      id="edit-laboratorio"
+                      value={createForm.laboratorio}
+                      onChange={(e) => setCreateForm({ ...createForm, laboratorio: e.target.value })}
+                      placeholder="Nombre del laboratorio fabricante"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección de Configuración */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Configuración</h3>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="edit-requiereReceta"
+                    checked={createForm.requiereReceta}
+                    onChange={(e) => setCreateForm({ ...createForm, requiereReceta: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <Label htmlFor="edit-requiereReceta" className="text-sm font-medium text-gray-700">
+                    Requiere receta médica
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="border-t pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+                className="mr-2"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                onClick={updateProduct}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Actualizar Producto
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         </div>
 
         {/* Modern Filters Section */}
@@ -539,6 +866,7 @@ export default function InventoryPage() {
                     <TableHead className="font-semibold text-gray-900 py-4 px-6">Stock</TableHead>
                     <TableHead className="font-semibold text-gray-900 py-4 px-6">Precio</TableHead>
                     <TableHead className="font-semibold text-gray-900 py-4 px-6">Estado</TableHead>
+                    <TableHead className="font-semibold text-gray-900 py-4 px-6">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -628,6 +956,28 @@ export default function InventoryPage() {
                             )}
                           </div>
                         </TableCell>
+                        <TableCell className="py-4 px-6">
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => openEditDialog(product)}
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1 border-blue-200 text-blue-700 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
+                            >
+                              <Edit className="h-4 w-4" />
+                              Editar
+                            </Button>
+                            <Button
+                              onClick={() => openDeleteDialog(product)}
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1 border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 transition-all duration-200"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Eliminar
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -637,6 +987,37 @@ export default function InventoryPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-600" />
+              Eliminar Producto
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Está seguro de que desea eliminar el producto <strong>&quot;{productToDelete?.nombre}&quot;</strong>?
+              <br />
+              <span className="text-red-600 font-medium">
+                Esta acción no se puede deshacer.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setProductToDelete(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteProduct}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
