@@ -105,9 +105,33 @@ export default function InventoryPage() {
     }
   };
 
+  const normalizeText = (text: string): string => {
+    if (!text) return '';
+    return text
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove accents
+      .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+      .replace(/\s+/g, ' '); // Normalize spaces
+  };
+
+  const categoryOptions = availableCategories.map(cat => cat.nombre);
+
   const filterProducts = () => {
     let filtered = products;
 
+    // Primero filtrar por categoría (si no es "all")
+    if (categoryFilter !== 'all') {
+      const normalizedFilter = normalizeText(categoryFilter);
+      filtered = filtered.filter(product => {
+        const productCategory = product.categoria || '';
+        const normalizedProductCategory = normalizeText(productCategory);
+        return normalizedProductCategory === normalizedFilter;
+      });
+    }
+
+    // Luego filtrar por búsqueda dentro de la categoría seleccionada
     if (searchTerm) {
       filtered = filtered.filter(product =>
         product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,10 +140,6 @@ export default function InventoryPage() {
         (product.codigo && product.codigo.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (product.codigoBarras && product.codigoBarras.toLowerCase().includes(searchTerm.toLowerCase()))
       );
-    }
-
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(product => product.categoria === categoryFilter);
     }
 
     setFilteredProducts(filtered);
@@ -281,8 +301,6 @@ export default function InventoryPage() {
   if (!session || !session.user) {
     return null;
   }
-
-  const categoryOptions = availableCategories.map(cat => cat.nombre);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
