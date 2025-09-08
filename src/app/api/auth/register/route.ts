@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, role } = await request.json();
+    const { name, email, password, role, activo } = await request.json();
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Todos los campos son requeridos' }, { status: 400 });
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       email,
       password: hashedPassword,
       role: role || 'vendedor',
-      activo: false, // Usuario inactivo por defecto, requiere aprobación del admin
+      activo: activo !== undefined ? activo : false, // Usuario inactivo por defecto, requiere aprobación del admin
     });
 
     await user.save();
