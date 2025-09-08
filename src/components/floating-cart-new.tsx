@@ -378,17 +378,17 @@ export function FloatingCart() {
               <div className="border-t pt-2 space-y-0.5 sm:space-y-1">
                 <div className="flex justify-between text-xs">
                   <span>Subtotal:</span>
-                  <span>${calculateSubtotal().toFixed(2)}</span>
+                  <span>{formatCurrency(calculateSubtotal())}</span>
                 </div>
                 {descuento > 0 && (
                   <div className="flex justify-between text-xs text-green-600">
                     <span>Descuento ({descuento}%):</span>
-                    <span>-${((calculateSubtotal() * descuento) / 100).toFixed(2)}</span>
+                    <span>-{formatCurrency((calculateSubtotal() * descuento) / 100)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-bold border-t pt-1">
                   <span>Total:</span>
-                  <span>${calculateTotal().toFixed(2)}</span>
+                  <span>{formatCurrency(calculateTotal())}</span>
                 </div>
               </div>
 
@@ -500,7 +500,7 @@ export function FloatingCart() {
                             </div>
                             <div className="flex items-center gap-2 ml-2">
                               <div className="font-bold text-sm text-green-600">
-                                ${product.precio.toFixed(2)}
+                                {formatCurrency(product.precio)}
                               </div>
                               <Button
                                 size="sm"
@@ -552,7 +552,7 @@ export function FloatingCart() {
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-sm truncate">{item.nombreProducto}</h4>
                             <div className="text-xs text-gray-600">
-                              ${item.precioUnitario.toFixed(2)} c/u
+                              {formatCurrency(item.precioUnitario)} c/u
                             </div>
                           </div>
                           <Button
@@ -585,7 +585,7 @@ export function FloatingCart() {
                             </Button>
                           </div>
                           <div className="text-right">
-                            <div className="font-bold text-sm">${item.precioTotal.toFixed(2)}</div>
+                            <div className="font-bold text-sm">{formatCurrency(item.precioTotal)}</div>
                           </div>
                         </div>
                       </div>
@@ -687,18 +687,18 @@ export function FloatingCart() {
                 <CardContent className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
-                    <span className="font-medium">${calculateSubtotal().toFixed(2)}</span>
+                    <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
                   </div>
                   {descuento > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Descuento ({descuento}%):</span>
-                      <span className="font-medium">-${((calculateSubtotal() * descuento) / 100).toFixed(2)}</span>
+                      <span className="font-medium">-{formatCurrency((calculateSubtotal() * descuento) / 100)}</span>
                     </div>
                   )}
                   <div className="border-t pt-2">
                     <div className="flex justify-between text-base font-bold">
                       <span>Total:</span>
-                      <span className="text-green-600">${calculateTotal().toFixed(2)}</span>
+                      <span className="text-green-600">{formatCurrency(calculateTotal())}</span>
                     </div>
                   </div>
                   
