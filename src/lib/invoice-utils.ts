@@ -38,22 +38,35 @@ export const generateInvoicePDF = async (sale: Sale): Promise<void> => {
     invoiceElement.style.width = '800px';
     invoiceElement.style.padding = '20px';
     invoiceElement.style.fontFamily = 'Arial, sans-serif';
-    invoiceElement.style.backgroundColor = 'white';
-    invoiceElement.style.color = 'black';
+    invoiceElement.style.backgroundColor = '#ffffff';
+    invoiceElement.style.color = '#000000';
     invoiceElement.style.position = 'absolute';
     invoiceElement.style.left = '-9999px';
     invoiceElement.style.top = '-9999px';
+    invoiceElement.style.zIndex = '-1';
+
+    // Agregar estilos inline para evitar problemas con CSS moderno
+    const style = document.createElement('style');
+    style.textContent = `
+      .invoice-header { color: #2563eb !important; }
+      .invoice-title { color: #2563eb !important; font-weight: bold !important; }
+      .table-header { background-color: #f9fafb !important; }
+      .border-default { border-color: #e5e7eb !important; }
+      .text-gray { color: #6b7280 !important; }
+      .text-green { color: #059669 !important; }
+    `;
+    invoiceElement.appendChild(style);
 
     // Agregar al DOM temporalmente
     document.body.appendChild(invoiceElement);
 
     // Esperar a que se renderice completamente
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
 
-    // Generar canvas con mejor configuración
+    // Generar canvas con configuración optimizada
     const canvas = await html2canvas(invoiceElement, {
       scale: 2,
-      useCORS: true,
+      useCORS: false,
       allowTaint: false,
       backgroundColor: '#ffffff',
       width: 800,
@@ -61,46 +74,57 @@ export const generateInvoicePDF = async (sale: Sale): Promise<void> => {
       scrollX: 0,
       scrollY: 0,
       windowWidth: 800,
-      windowHeight: invoiceElement.scrollHeight
+      windowHeight: invoiceElement.scrollHeight,
+      ignoreElements: (element) => {
+        // Ignorar elementos que puedan causar problemas
+        return element.classList.contains('no-print') ||
+               element.tagName === 'SCRIPT' ||
+               element.tagName === 'STYLE';
+      }
     });
 
     // Remover elemento temporal
     document.body.removeChild(invoiceElement);
 
-    // Crear PDF con mejor configuración
+    // Crear PDF
     const pdf = new jsPDF('p', 'mm', 'a4');
 
     const imgWidth = 210; // A4 width in mm
     const pageHeight = 295; // A4 height in mm
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    // Calcular cuántas páginas necesitamos
-    const totalPages = Math.ceil(imgHeight / pageHeight);
+    // Si la imagen cabe en una página
+    if (imgHeight <= pageHeight) {
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
+    } else {
+      // Dividir en múltiples páginas
+      let yPosition = 0;
+      while (yPosition < imgHeight) {
+        if (yPosition > 0) {
+          pdf.addPage();
+        }
 
-    for (let page = 0; page < totalPages; page++) {
-      if (page > 0) {
-        pdf.addPage();
-      }
+        const remainingHeight = imgHeight - yPosition;
+        const pageContentHeight = Math.min(pageHeight, remainingHeight);
 
-      const yPosition = -(page * pageHeight * canvas.width / imgWidth);
-      const sourceY = page * pageHeight * canvas.width / imgWidth;
-      const sourceHeight = Math.min(pageHeight * canvas.width / imgWidth, canvas.height - sourceY);
+        // Crear canvas temporal para esta página
+        const pageCanvas = document.createElement('canvas');
+        const pageCtx = pageCanvas.getContext('2d');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = (pageContentHeight / imgWidth) * canvas.width;
 
-      // Crear un canvas temporal para esta página
-      const pageCanvas = document.createElement('canvas');
-      const pageCtx = pageCanvas.getContext('2d');
-      pageCanvas.width = canvas.width;
-      pageCanvas.height = sourceHeight;
+        if (pageCtx) {
+          const sourceY = (yPosition / imgWidth) * canvas.width;
+          pageCtx.drawImage(
+            canvas,
+            0, sourceY, canvas.width, pageCanvas.height,
+            0, 0, canvas.width, pageCanvas.height
+          );
 
-      if (pageCtx) {
-        pageCtx.drawImage(
-          canvas,
-          0, sourceY, canvas.width, sourceHeight,
-          0, 0, canvas.width, sourceHeight
-        );
+          pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, pageContentHeight);
+        }
 
-        const pageImgData = pageCanvas.toDataURL('image/png');
-        pdf.addImage(pageImgData, 'PNG', 0, 0, imgWidth, (sourceHeight * imgWidth) / canvas.width);
+        yPosition += pageContentHeight;
       }
     }
 
@@ -110,7 +134,7 @@ export const generateInvoicePDF = async (sale: Sale): Promise<void> => {
 
   } catch (error) {
     console.error('Error generando PDF:', error);
-    throw new Error(`Error al generar el PDF de la factura: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    throw new Error(`Error al generar el PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
   }
 };
 

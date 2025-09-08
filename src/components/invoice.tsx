@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Printer, Download, X } from 'lucide-react';
 import { generateInvoicePDF, printInvoice } from '@/lib/invoice-utils';
+import { toast } from 'sonner';
 
 interface Sale {
   _id: string;
@@ -58,14 +59,13 @@ export function Invoice({ sale, onClose, onPrint, onDownload }: InvoiceProps) {
       onDownload();
     } else {
       try {
+        toast.loading('Generando PDF...', { id: 'pdf-download' });
         await generateInvoicePDF(sale);
-        // Mostrar mensaje de éxito
-        console.log('PDF descargado exitosamente');
+        toast.success('PDF descargado exitosamente', { id: 'pdf-download' });
       } catch (error) {
         console.error('Error descargando PDF:', error);
-        // Mostrar mensaje de error más específico
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido al generar el PDF';
-        alert(`Error al descargar el PDF: ${errorMessage}`);
+        toast.error(`Error al descargar el PDF: ${errorMessage}`, { id: 'pdf-download' });
       }
     }
   };
@@ -87,10 +87,10 @@ export function Invoice({ sale, onClose, onPrint, onDownload }: InvoiceProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
         {/* Header con acciones */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50/50">
           <h2 className="text-2xl font-bold text-gray-900">Factura #{sale.numeroFactura}</h2>
           <div className="flex gap-2">
             <Button onClick={handlePrint} className="flex items-center gap-2">
