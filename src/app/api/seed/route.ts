@@ -2,10 +2,55 @@ import dbConnect from '@/lib/mongodb';
 import Product from '@/lib/models/Product';
 import Sale from '@/lib/models/Sale';
 import User from '@/lib/models/User';
+import Category from '@/lib/models/Category';
 
 export async function POST() {
   try {
     await dbConnect();
+
+    // Crear categorías de ejemplo
+    const categoriasEjemplo = [
+      {
+        nombre: 'Analgésicos',
+        descripcion: 'Medicamentos para el dolor y fiebre',
+        activo: true
+      },
+      {
+        nombre: 'Antiinflamatorios',
+        descripcion: 'Medicamentos para reducir inflamación',
+        activo: true
+      },
+      {
+        nombre: 'Antibióticos',
+        descripcion: 'Medicamentos para infecciones bacterianas',
+        activo: true
+      },
+      {
+        nombre: 'Gastrointestinales',
+        descripcion: 'Medicamentos para problemas digestivos',
+        activo: true
+      },
+      {
+        nombre: 'Antialérgicos',
+        descripcion: 'Medicamentos para alergias',
+        activo: true
+      },
+      {
+        nombre: 'Cardiovasculares',
+        descripcion: 'Medicamentos para el corazón y circulación',
+        activo: true
+      }
+    ];
+
+    // Insertar categorías si no existen
+    for (const categoria of categoriasEjemplo) {
+      const existe = await Category.findOne({ nombre: categoria.nombre });
+      if (!existe) {
+        await Category.create(categoria);
+      }
+    }
+
+    console.log('Categorías de ejemplo creadas');
 
     // Crear productos de ejemplo
     const productosEjemplo = [

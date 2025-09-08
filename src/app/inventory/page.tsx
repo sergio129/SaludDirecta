@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Product {
@@ -39,6 +39,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [availableCategories, setAvailableCategories] = useState<{ _id: string; nombre: string; activo: boolean }[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
     nombre: '',
@@ -63,6 +64,7 @@ export default function InventoryPage() {
     }
 
     fetchProducts();
+    fetchCategories();
   }, [session, status, router]);
 
   useEffect(() => {
@@ -83,6 +85,18 @@ export default function InventoryPage() {
       toast.error('Error de conexión');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories');
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableCategories(data.filter((cat: any) => cat.activo));
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
     }
   };
 
@@ -171,7 +185,7 @@ export default function InventoryPage() {
     return null;
   }
 
-  const categories = [...new Set(products.map(p => p.categoria))];
+  const categoryOptions = availableCategories.map(cat => cat.nombre);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -193,6 +207,14 @@ export default function InventoryPage() {
             >
               <ArrowLeft className="h-4 w-4" />
               Volver al Dashboard
+            </Button>
+            <Button
+              onClick={() => router.push('/inventory/categories')}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Tag className="h-4 w-4" />
+              Categorías
             </Button>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
@@ -346,15 +368,35 @@ export default function InventoryPage() {
                     <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Clasificación</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="categoria" className="text-sm font-medium text-gray-700">
-                          Categoría *
-                        </Label>
-                        <Input
-                          id="categoria"
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="categoria" className="text-sm font-medium text-gray-700">
+                            Categoría *
+                          </Label>
+                          <Button
+                            type="button"
+                            variant="link"
+                            size="sm"
+                            onClick={() => router.push('/inventory/categories')}
+                            className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                          >
+                            Gestionar categorías
+                          </Button>
+                        </div>
+                        <Select
                           value={createForm.categoria}
-                          onChange={(e) => setCreateForm({ ...createForm, categoria: e.target.value })}
-                          placeholder="Ej: Analgésicos, Antibióticos"
-                        />
+                          onValueChange={(value) => setCreateForm({ ...createForm, categoria: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona una categoría" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableCategories.map((category) => (
+                              <SelectItem key={category._id} value={category.nombre}>
+                                {category.nombre}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="laboratorio" className="text-sm font-medium text-gray-700">
@@ -438,9 +480,9 @@ export default function InventoryPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las categorías</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
+                  {categoryOptions.map((categoryName) => (
+                    <SelectItem key={categoryName} value={categoryName}>
+                      {categoryName}
                     </SelectItem>
                   ))}
                 </SelectContent>
