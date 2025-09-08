@@ -60,24 +60,35 @@ export const authOptions = {
   },
   callbacks: {
     async jwt({ token, user }: any) {
-      if (user) {
-        token.role = user.role;
+      try {
+        if (user) {
+          token.role = user.role;
+        }
+        return token;
+      } catch (error) {
+        console.error('Error en JWT callback:', error);
+        return token;
       }
-      return token;
     },
     async session({ session, token }: any) {
-      if (session.user && token) {
-        session.user.id = token.sub!;
-        session.user.role = token.role as string;
+      try {
+        if (session.user && token) {
+          session.user.id = token.sub!;
+          session.user.role = token.role as string;
+        }
+        return session;
+      } catch (error) {
+        console.error('Error en session callback:', error);
+        return session;
       }
-      return session;
     },
   },
   pages: {
     signIn: '/login',
-    error: '/login',
+    error: '/auth/error',
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 };
 
 const handler = NextAuth(authOptions);
