@@ -13,47 +13,49 @@ interface Credentials {
 export const authOptions = {
   providers: [
     CredentialsProvider({
+      id: 'credentials',
       name: 'credentials',
+      type: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Contraseña', type: 'password' },
       },
       async authorize(credentials: Credentials | undefined): Promise<any> {
         try {
-          console.log('Intentando autenticar usuario:', credentials?.email);
+          console.log('🔐 Intentando autenticar usuario:', credentials?.email);
 
           if (!credentials?.email || !credentials?.password) {
-            console.log('Credenciales faltantes');
+            console.log('❌ Credenciales faltantes');
             return null;
           }
 
-          console.log('Conectando a base de datos...');
+          console.log('🔌 Conectando a base de datos...');
           await dbConnect();
-          console.log('Conexión exitosa a base de datos');
+          console.log('✅ Conexión exitosa a base de datos');
 
           const user = await User.findOne({ email: credentials.email });
-          console.log('Usuario encontrado:', user ? 'Sí' : 'No');
+          console.log('👤 Usuario encontrado:', user ? 'Sí' : 'No');
 
           if (!user) {
-            console.log('Usuario no encontrado');
+            console.log('❌ Usuario no encontrado');
             return null;
           }
 
           if (!user.activo) {
-            console.log('Usuario no activo');
+            console.log('🚫 Usuario no activo');
             throw new Error('Usuario no autorizado. Contacta al administrador.');
           }
 
-          console.log('Verificando contraseña...');
+          console.log('🔒 Verificando contraseña...');
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-          console.log('Contraseña válida:', isPasswordValid);
+          console.log('✅ Contraseña válida:', isPasswordValid);
 
           if (!isPasswordValid) {
-            console.log('Contraseña incorrecta');
+            console.log('❌ Contraseña incorrecta');
             return null;
           }
 
-          console.log('Autenticación exitosa para:', user.email);
+          console.log('🎉 Autenticación exitosa para:', user.email);
           return {
             id: user._id.toString(),
             email: user.email,
@@ -61,7 +63,7 @@ export const authOptions = {
             role: user.role,
           };
         } catch (error) {
-          console.error('Error en authorize:', error);
+          console.error('💥 Error en authorize:', error);
           // Para errores del servidor, retornar null en lugar de lanzar error
           if (error instanceof Error && error.message.includes('Usuario no autorizado')) {
             throw error; // Re-lanzar errores de usuario no autorizado
@@ -73,28 +75,39 @@ export const authOptions = {
   ],
   session: {
     strategy: 'jwt' as const,
+    maxAge: 30 * 24 * 60 * 60, // 30 días
+    updateAge: 24 * 60 * 60, // 24 horas
   },
   callbacks: {
-    async jwt({ token, user }: any) {
+    async jwt({ token, user, account }: any) {
       try {
+        console.log('🔑 JWT callback - Token:', !!token, 'User:', !!user, 'Account:', !!account);
+
         if (user) {
           token.role = user.role;
+          token.id = user.id;
         }
+
+        console.log('✅ JWT callback completado');
         return token;
       } catch (error) {
-        console.error('Error en JWT callback:', error);
+        console.error('💥 Error en JWT callback:', error);
         return token;
       }
     },
     async session({ session, token }: any) {
       try {
+        console.log('📋 Session callback - Session:', !!session, 'Token:', !!token);
+
         if (session.user && token) {
-          session.user.id = token.sub!;
-          session.user.role = token.role as string;
+          session.user.id = token.id || token.sub;
+          session.user.role = token.role;
         }
+
+        console.log('✅ Session callback completado');
         return session;
       } catch (error) {
-        console.error('Error en session callback:', error);
+        console.error('💥 Error en session callback:', error);
         return session;
       }
     },
@@ -103,8 +116,9 @@ export const authOptions = {
     signIn: '/login',
     error: '/auth/error',
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-development',
   debug: process.env.NODE_ENV === 'development',
+  useSecureCookies: process.env.NODE_ENV === 'production',
 };
 
 const handler = NextAuth(authOptions);
