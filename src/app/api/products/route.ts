@@ -35,7 +35,35 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    const products = await Product.find({ activo: true }).sort({ fechaCreacion: -1 });
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search');
+    const categoria = searchParams.get('categoria');
+    const activo = searchParams.get('activo');
+
+    let query: any = {};
+
+    // Filtro por búsqueda (nombre, código, código de barras)
+    if (search) {
+      query.$or = [
+        { nombre: { $regex: search, $options: 'i' } },
+        { codigo: { $regex: search, $options: 'i' } },
+        { codigoBarras: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Filtro por categoría
+    if (categoria && categoria !== 'todas') {
+      query.categoria = categoria;
+    }
+
+    // Filtro por estado activo
+    if (activo !== null) {
+      query.activo = activo === 'true';
+    } else {
+      query.activo = true; // Por defecto solo productos activos
+    }
+
+    const products = await Product.find(query).sort({ fechaCreacion: -1 });
 
     return NextResponse.json(products);
 
@@ -56,7 +84,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { nombre, descripcion, precio, precioCompra, stock, stockMinimo, categoria, laboratorio, requiereReceta } = await request.json();
+    const { nombre, descripcion, precio, precioCompra, stock, stockMinimo, categoria, laboratorio, requiereReceta, codigo, codigoBarras } = await request.json();
 
     if (!nombre || !precio || !precioCompra || stock === undefined || !stockMinimo || !categoria || !laboratorio) {
       return NextResponse.json({ error: 'Todos los campos requeridos deben ser proporcionados' }, { status: 400 });
@@ -74,6 +102,8 @@ export async function POST(request: NextRequest) {
       categoria,
       laboratorio,
       requiereReceta: requiereReceta || false,
+      codigo,
+      codigoBarras,
       activo: true
     });
 

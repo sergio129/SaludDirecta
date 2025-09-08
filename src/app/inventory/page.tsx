@@ -12,8 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle, Tag, Pill, Edit, Trash2, Check, ChevronsUpDown } from 'lucide-react';
+import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle, Tag, Pill, Edit, Trash2, Check, ChevronsUpDown, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCart } from '@/lib/cart-context';
 
 interface Product {
   _id: string;
@@ -35,6 +36,7 @@ interface Product {
 export default function InventoryPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { addToCart } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -256,6 +258,16 @@ export default function InventoryPage() {
       codigoBarras: '',
       requiereReceta: false
     });
+  };
+
+  const handleAddToCart = (product: Product) => {
+    if (product.stock <= 0) {
+      toast.error('Producto sin stock disponible');
+      return;
+    }
+
+    // Por defecto agregar como unidad, pero se puede cambiar desde el carrito
+    addToCart(product, 'unidad', 1);
   };
 
   const updateProduct = async () => {
@@ -1104,6 +1116,16 @@ export default function InventoryPage() {
                         </TableCell>
                         <TableCell className="py-4 px-6">
                           <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleAddToCart(product)}
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-1 border-green-200 text-green-700 hover:border-green-300 hover:bg-green-50 transition-all duration-200"
+                              disabled={product.stock <= 0}
+                            >
+                              <ShoppingCart className="h-4 w-4" />
+                              Agregar
+                            </Button>
                             <Button
                               onClick={() => openEditDialog(product)}
                               variant="outline"

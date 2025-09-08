@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/mongodb';
 import Sale from '@/lib/models/Sale';
+import mongoose from 'mongoose';
 
 const authOptions = {
   providers: [],
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { cliente, items, metodoPago, notas } = await request.json();
+    const { cliente, items, descuento, metodoPago, notas } = await request.json();
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'Debe incluir al menos un producto' }, { status: 400 });
@@ -66,19 +67,48 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
+    // Verificar stock disponible y calcular totales
+    let subtotal = 0;
+    for (const item of items) {
+      const product = await mongoose.model('Product').findById(item.producto);
+      if (!product) {
+        return NextResponse.json({ error: `Producto ${item.nombreProducto} no encontrado` }, { status: 400 });
+      }
+      if (product.stock < item.cantidad) {
+        return NextResponse.json({ error: `Stock insuficiente para ${item.nombreProducto}. Disponible: ${product.stock}` }, { status: 400 });
+      }
+      subtotal += item.precioTotal;
+    }
+
     // Generar número de factura único
     const fecha = new Date();
     const numeroFactura = `FAC-${fecha.getFullYear()}${String(fecha.getMonth() + 1).padStart(2, '0')}${String(fecha.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+
+    const discountAmount = (subtotal * (descuento || 0)) / 100;
+    const total = subtotal - discountAmount;
 
     const sale = new Sale({
       numeroFactura,
       cliente,
       items,
+      subtotal,
+      descuento: descuento || 0,
+      impuesto: 0, // Por ahora sin impuestos
+      total,
       metodoPago: metodoPago || 'efectivo',
-      estado: 'pendiente',
+      estado: 'completada', // Cambiar a completada ya que se procesa inmediatamente
       vendedor: session.user.id,
-      notas
+      notas,
+      fechaVenta: new Date()
     });
+
+    // Actualizar stock de productos
+    for (const item of items) {
+      await mongoose.model('Product').findByIdAndUpdate(
+        item.producto,
+        { $inc: { stock: -item.cantidad } }
+      );
+    }
 
     await sale.save();
 
