@@ -24,6 +24,8 @@ interface Product {
   stockMinimo: number;
   categoria: string;
   laboratorio: string;
+  codigo?: string;
+  codigoBarras?: string;
   requiereReceta: boolean;
   activo: boolean;
   fechaCreacion: string;
@@ -47,6 +49,8 @@ export default function InventoryPage() {
     stockMinimo: '',
     categoria: '',
     laboratorio: '',
+    codigo: '',
+    codigoBarras: '',
     requiereReceta: false
   });
 
@@ -89,7 +93,9 @@ export default function InventoryPage() {
       filtered = filtered.filter(product =>
         product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.laboratorio.toLowerCase().includes(searchTerm.toLowerCase())
+        product.laboratorio.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.codigo && product.codigo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (product.codigoBarras && product.codigoBarras.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -128,6 +134,8 @@ export default function InventoryPage() {
           stockMinimo: '',
           categoria: '',
           laboratorio: '',
+          codigo: '',
+          codigoBarras: '',
           requiereReceta: false
         });
         fetchProducts();
@@ -293,6 +301,30 @@ export default function InventoryPage() {
                       className="col-span-3"
                     />
                   </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="codigo" className="text-right">
+                      Código
+                    </Label>
+                    <Input
+                      id="codigo"
+                      value={createForm.codigo}
+                      onChange={(e) => setCreateForm({ ...createForm, codigo: e.target.value })}
+                      className="col-span-3"
+                      placeholder="Código interno del producto"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="codigoBarras" className="text-right">
+                      Código de Barras
+                    </Label>
+                    <Input
+                      id="codigoBarras"
+                      value={createForm.codigoBarras}
+                      onChange={(e) => setCreateForm({ ...createForm, codigoBarras: e.target.value })}
+                      className="col-span-3"
+                      placeholder="Código de barras del producto"
+                    />
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button type="submit" onClick={createProduct} className="bg-blue-600 hover:bg-blue-700">
@@ -357,6 +389,8 @@ export default function InventoryPage() {
                   <TableHead>Producto</TableHead>
                   <TableHead>Categoría</TableHead>
                   <TableHead>Laboratorio</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Código de Barras</TableHead>
                   <TableHead>Stock</TableHead>
                   <TableHead>Precio</TableHead>
                   <TableHead>Estado</TableHead>
@@ -379,6 +413,12 @@ export default function InventoryPage() {
                         <Badge variant="outline">{product.categoria}</Badge>
                       </TableCell>
                       <TableCell>{product.laboratorio}</TableCell>
+                      <TableCell>
+                        <span className="font-mono text-sm">{product.codigo || '-'}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-sm">{product.codigoBarras || '-'}</span>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span className={`font-medium ${
