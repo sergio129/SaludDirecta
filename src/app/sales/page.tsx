@@ -46,10 +46,19 @@ interface Sale {
     precioUnitario: number;
     precioTotal: number;
   }>;
+  subtotal: number;
+  descuento: number;
+  impuesto: number;
   total: number;
   metodoPago: string;
   estado: string;
-  fechaCreacion: string;
+  vendedor?: {
+    name: string;
+    email: string;
+  };
+  notas?: string;
+  fechaVenta: Date;
+  fechaCreacion: Date;
 }
 
 export default function SalesPage() {
@@ -184,7 +193,20 @@ export default function SalesPage() {
       const response = await fetch(`/api/sales/${saleId}`);
       if (response.ok) {
         const sale = await response.json();
-        setSelectedSale(sale);
+        // Agregar propiedades faltantes para el componente Invoice
+        const invoiceSale = {
+          ...sale,
+          subtotal: sale.total, // Asumir que el subtotal es igual al total si no hay descuento
+          descuento: 0,
+          impuesto: 0,
+          fechaVenta: new Date(sale.fechaCreacion),
+          fechaCreacion: new Date(sale.fechaCreacion),
+          vendedor: {
+            name: 'Sistema',
+            email: 'sistema@saluddirecta.com'
+          }
+        };
+        setSelectedSale(invoiceSale);
         setShowInvoice(true);
       } else {
         toast.error('Error al cargar la factura');
@@ -617,6 +639,17 @@ export default function SalesPage() {
                           hour: '2-digit',
                           minute: '2-digit'
                         })}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => viewInvoice(sale._id)}
+                          className="flex items-center gap-2"
+                        >
+                          <Receipt className="h-4 w-4" />
+                          Ver Factura
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

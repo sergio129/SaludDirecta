@@ -59,9 +59,13 @@ export function Invoice({ sale, onClose, onPrint, onDownload }: InvoiceProps) {
     } else {
       try {
         await generateInvoicePDF(sale);
+        // Mostrar mensaje de éxito
+        console.log('PDF descargado exitosamente');
       } catch (error) {
         console.error('Error descargando PDF:', error);
-        alert('Error al descargar el PDF');
+        // Mostrar mensaje de error más específico
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido al generar el PDF';
+        alert(`Error al descargar el PDF: ${errorMessage}`);
       }
     }
   };

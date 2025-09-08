@@ -40,52 +40,77 @@ export const generateInvoicePDF = async (sale: Sale): Promise<void> => {
     invoiceElement.style.fontFamily = 'Arial, sans-serif';
     invoiceElement.style.backgroundColor = 'white';
     invoiceElement.style.color = 'black';
+    invoiceElement.style.position = 'absolute';
+    invoiceElement.style.left = '-9999px';
+    invoiceElement.style.top = '-9999px';
 
     // Agregar al DOM temporalmente
     document.body.appendChild(invoiceElement);
 
-    // Generar canvas
+    // Esperar a que se renderice completamente
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Generar canvas con mejor configuración
     const canvas = await html2canvas(invoiceElement, {
       scale: 2,
       useCORS: true,
-      allowTaint: true,
+      allowTaint: false,
       backgroundColor: '#ffffff',
       width: 800,
-      height: invoiceElement.offsetHeight
+      height: invoiceElement.scrollHeight,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: 800,
+      windowHeight: invoiceElement.scrollHeight
     });
 
     // Remover elemento temporal
     document.body.removeChild(invoiceElement);
 
-    // Crear PDF
-    const imgData = canvas.toDataURL('image/png');
+    // Crear PDF con mejor configuración
     const pdf = new jsPDF('p', 'mm', 'a4');
 
     const imgWidth = 210; // A4 width in mm
     const pageHeight = 295; // A4 height in mm
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
 
-    let position = 0;
+    // Calcular cuántas páginas necesitamos
+    const totalPages = Math.ceil(imgHeight / pageHeight);
 
-    // Agregar primera página
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+    for (let page = 0; page < totalPages; page++) {
+      if (page > 0) {
+        pdf.addPage();
+      }
 
-    // Agregar páginas adicionales si es necesario
-    while (heightLeft >= 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      const yPosition = -(page * pageHeight * canvas.width / imgWidth);
+      const sourceY = page * pageHeight * canvas.width / imgWidth;
+      const sourceHeight = Math.min(pageHeight * canvas.width / imgWidth, canvas.height - sourceY);
+
+      // Crear un canvas temporal para esta página
+      const pageCanvas = document.createElement('canvas');
+      const pageCtx = pageCanvas.getContext('2d');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = sourceHeight;
+
+      if (pageCtx) {
+        pageCtx.drawImage(
+          canvas,
+          0, sourceY, canvas.width, sourceHeight,
+          0, 0, canvas.width, sourceHeight
+        );
+
+        const pageImgData = pageCanvas.toDataURL('image/png');
+        pdf.addImage(pageImgData, 'PNG', 0, 0, imgWidth, (sourceHeight * imgWidth) / canvas.width);
+      }
     }
 
     // Descargar PDF
-    pdf.save(`Factura-${sale.numeroFactura}.pdf`);
+    const fileName = `Factura-${sale.numeroFactura.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+    pdf.save(fileName);
 
   } catch (error) {
     console.error('Error generando PDF:', error);
-    throw new Error('Error al generar el PDF de la factura');
+    throw new Error(`Error al generar el PDF de la factura: ${error instanceof Error ? error.message : 'Error desconocido'}`);
   }
 };
 

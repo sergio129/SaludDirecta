@@ -27,7 +27,7 @@ const authOptions = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -38,7 +38,9 @@ export async function GET(
 
     await dbConnect();
 
-    const sale = await Sale.findById(params.id)
+    const { id } = await params;
+
+    const sale = await Sale.findById(id)
       .populate('vendedor', 'name email')
       .lean();
 
@@ -59,7 +61,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -72,7 +74,9 @@ export async function PUT(
 
     await dbConnect();
 
-    const sale = await Sale.findById(params.id);
+    const { id } = await params;
+
+    const sale = await Sale.findById(id);
 
     if (!sale) {
       return NextResponse.json({ error: 'Venta no encontrada' }, { status: 404 });
