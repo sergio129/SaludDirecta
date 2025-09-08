@@ -1,0 +1,102 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import dbConnect from '@/lib/mongodb';
+import Sale from '@/lib/models/Sale';
+
+const authOptions = {
+  providers: [],
+  pages: {
+    signIn: '/login',
+  },
+  callbacks: {
+    async jwt({ token, user }: any) {
+      if (user) {
+        token.role = user.role;
+      }
+      return token;
+    },
+    async session({ session, token }: any) {
+      if (token) {
+        session.user.id = token.sub;
+        session.user.role = token.role;
+      }
+      return session;
+    },
+  },
+};
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    await dbConnect();
+
+    const sale = await Sale.findById(params.id)
+      .populate('vendedor', 'name email')
+      .lean();
+
+    if (!sale) {
+      return NextResponse.json({ error: 'Venta no encontrada' }, { status: 404 });
+    }
+
+    return NextResponse.json(sale);
+
+  } catch (error) {
+    console.error('Error obteniendo venta:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const { estado, notas } = await request.json();
+
+    await dbConnect();
+
+    const sale = await Sale.findById(params.id);
+
+    if (!sale) {
+      return NextResponse.json({ error: 'Venta no encontrada' }, { status: 404 });
+    }
+
+    // Solo permitir cambios de estado específicos
+    if (estado && ['completada', 'cancelada', 'devuelta'].includes(estado)) {
+      sale.estado = estado;
+    }
+
+    if (notas !== undefined) {
+      sale.notas = notas;
+    }
+
+    sale.fechaActualizacion = new Date();
+    await sale.save();
+
+    return NextResponse.json(sale);
+
+  } catch (error) {
+    console.error('Error actualizando venta:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}

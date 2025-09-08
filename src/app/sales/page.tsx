@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ShoppingCart, Search, ArrowLeft, Receipt, Minus, Package, User, Percent } from 'lucide-react';
+import { Invoice } from '@/components/invoice';
 import { toast } from 'sonner';
 import { useCart } from '@/lib/cart-context';
 
@@ -80,6 +81,10 @@ export default function SalesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [productSearchTerm, setProductSearchTerm] = useState('');
+
+  // Estado para el modal de factura
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [showInvoice, setShowInvoice] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -172,6 +177,27 @@ export default function SalesPage() {
     await processSale();
     fetchSales();
     fetchProducts(); // Recargar productos para actualizar stock
+  };
+
+  const viewInvoice = async (saleId: string) => {
+    try {
+      const response = await fetch(`/api/sales/${saleId}`);
+      if (response.ok) {
+        const sale = await response.json();
+        setSelectedSale(sale);
+        setShowInvoice(true);
+      } else {
+        toast.error('Error al cargar la factura');
+      }
+    } catch (error) {
+      console.error('Error cargando factura:', error);
+      toast.error('Error de conexión');
+    }
+  };
+
+  const closeInvoice = () => {
+    setShowInvoice(false);
+    setSelectedSale(null);
   };
 
   const getStatusColor = (estado: string) => {
@@ -545,6 +571,7 @@ export default function SalesPage() {
                     <TableHead>Método de Pago</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Fecha</TableHead>
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -607,6 +634,14 @@ export default function SalesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Factura */}
+      {showInvoice && selectedSale && (
+        <Invoice
+          sale={selectedSale}
+          onClose={closeInvoice}
+        />
+      )}
     </div>
   );
 }
