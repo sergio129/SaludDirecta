@@ -70,9 +70,9 @@ export function Invoice({ sale, onClose, onPrint, onDownload }: InvoiceProps) {
     }
   };
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-ES', {
+    return new Intl.NumberFormat('es-CO', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'COP'
     }).format(amount);
   };
 

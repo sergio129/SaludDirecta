@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/lib/cart-context';
+import { formatCurrency } from '@/lib/currency-utils';
 
 interface Product {
   _id: string;
@@ -241,7 +242,7 @@ export function FloatingCart() {
                           >
                             <div className="flex-1 min-w-0">
                               <div className="font-medium text-xs truncate">{product.nombre}</div>
-                              <div className="text-xs text-gray-500">${product.precio.toFixed(2)}</div>
+                              <div className="text-xs text-gray-500">{formatCurrency(product.precio)}</div>
                             </div>
                             <Button size="sm" variant="outline" className="text-xs h-5 sm:h-6 px-1 sm:px-2">
                               <Plus className="w-2 h-2 sm:w-3 sm:h-3" />
@@ -274,7 +275,7 @@ export function FloatingCart() {
                       <div className="flex justify-between items-start mb-1">
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-xs truncate">{item.nombreProducto}</h4>
-                          <div className="text-xs text-gray-600">${item.precioUnitario.toFixed(2)} c/u</div>
+                          <div className="text-xs text-gray-600">{formatCurrency(item.precioUnitario)} c/u</div>
                         </div>
                         <Button
                           variant="destructive"
@@ -305,7 +306,7 @@ export function FloatingCart() {
                             <Plus className="w-2 h-2 sm:w-3 sm:h-3" />
                           </Button>
                         </div>
-                        <div className="font-bold text-xs">${item.precioTotal.toFixed(2)}</div>
+                        <div className="font-bold text-xs">{formatCurrency(item.precioTotal)}</div>
                       </div>
                     </div>
                   ))

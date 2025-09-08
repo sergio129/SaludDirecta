@@ -172,8 +172,8 @@ export const generateInvoicePDF = async (sale: Sale): Promise<void> => {
       const productName = item.nombreProducto.length > 25 ? item.nombreProducto.substring(0, 22) + '...' : item.nombreProducto;
       pdf.text(productName, colPositions[0] + 2, yPosition);
       pdf.text(item.cantidad.toString(), colPositions[1] + 2, yPosition);
-      pdf.text(new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(item.precioUnitario), colPositions[2] + 2, yPosition);
-      pdf.text(new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(item.precioTotal), colPositions[3] + 2, yPosition);
+      pdf.text(new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(item.precioUnitario), colPositions[2] + 2, yPosition);
+      pdf.text(new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(item.precioTotal), colPositions[3] + 2, yPosition);
 
       yPosition += rowHeight;
     });
@@ -195,12 +195,12 @@ export const generateInvoicePDF = async (sale: Sale): Promise<void> => {
     yPosition = addText('RESUMEN', totalsX, yPosition, 80, 12, 'bold');
     yPosition += 5;
 
-    yPosition = addText(`Subtotal: ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.subtotal)}`, totalsX, yPosition, 80);
+    yPosition = addText(`Subtotal: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(sale.subtotal)}`, totalsX, yPosition, 80);
     if (sale.descuento > 0) {
-      yPosition = addText(`Descuento (${sale.descuento}%): -${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format((sale.subtotal * sale.descuento) / 100)}`, totalsX, yPosition, 80);
+      yPosition = addText(`Descuento (${sale.descuento}%): -${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format((sale.subtotal * sale.descuento) / 100)}`, totalsX, yPosition, 80);
     }
     if (sale.impuesto > 0) {
-      yPosition = addText(`Impuesto: ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.impuesto)}`, totalsX, yPosition, 80);
+      yPosition = addText(`Impuesto: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(sale.impuesto)}`, totalsX, yPosition, 80);
     }
 
     // Línea separadora para total
@@ -211,7 +211,7 @@ export const generateInvoicePDF = async (sale: Sale): Promise<void> => {
     // Total
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(12);
-    pdf.text(`TOTAL: ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.total)}`, totalsX, yPosition);
+    pdf.text(`TOTAL: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(sale.total)}`, totalsX, yPosition);
     yPosition += 8;
 
     // Método de pago
@@ -393,8 +393,8 @@ export const printInvoice = (sale: Sale): void => {
               <tr>
                 <td>${item.nombreProducto}</td>
                 <td class="text-center">${item.cantidad}</td>
-                <td class="text-right">${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(item.precioUnitario)}</td>
-                <td class="text-right">${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(item.precioTotal)}</td>
+                <td class="text-right">${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(item.precioUnitario)}</td>
+                <td class="text-right">${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(item.precioTotal)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -404,23 +404,23 @@ export const printInvoice = (sale: Sale): void => {
           <div>
             <div class="total-row">
               <span>Subtotal:</span>
-              <span>${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.subtotal)}</span>
+              <span>${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(sale.subtotal)}</span>
             </div>
             ${sale.descuento > 0 ? `
               <div class="total-row">
                 <span>Descuento (${sale.descuento}%):</span>
-                <span>-${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format((sale.subtotal * sale.descuento) / 100)}</span>
+                <span>-${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format((sale.subtotal * sale.descuento) / 100)}</span>
               </div>
             ` : ''}
             ${sale.impuesto > 0 ? `
               <div class="total-row">
                 <span>Impuesto:</span>
-                <span>${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.impuesto)}</span>
+                <span>${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(sale.impuesto)}</span>
               </div>
             ` : ''}
             <div class="total-row" style="border-top: 2px solid #000;">
               <span>TOTAL:</span>
-              <span>${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.total)}</span>
+              <span>${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(sale.total)}</span>
             </div>
             <div style="margin-top: 10px; font-size: 12px;">
               <strong>Método de pago:</strong> ${sale.metodoPago}

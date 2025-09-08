@@ -14,6 +14,7 @@ import { ShoppingCart, Search, ArrowLeft, Receipt, Minus, Package, User, Percent
 import { Invoice } from '@/components/invoice';
 import { toast } from 'sonner';
 import { useCart } from '@/lib/cart-context';
+import { formatCurrency } from '@/lib/currency-utils';
 
 interface Product {
   _id: string;
@@ -343,7 +344,7 @@ export default function SalesPage() {
 
                         <div className="flex items-center justify-between">
                           <span className="text-lg font-bold text-green-600">
-                            ${product.precio.toFixed(2)}
+                            {formatCurrency(product.precio)}
                           </span>
                           <div className="flex gap-2">
                             <Button
@@ -410,7 +411,7 @@ export default function SalesPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">${item.precioTotal.toFixed(2)}</span>
+                        <span className="font-semibold text-sm">{formatCurrency(item.precioTotal)}</span>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -435,7 +436,7 @@ export default function SalesPage() {
                   <div className="space-y-3 pt-4 border-t">
                     <div className="flex justify-between text-sm">
                       <span>Subtotal:</span>
-                      <span>${calculateSubtotal().toFixed(2)}</span>
+                      <span>{formatCurrency(calculateSubtotal())}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -454,7 +455,7 @@ export default function SalesPage() {
 
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total:</span>
-                      <span className="text-green-600">${calculateTotal().toFixed(2)}</span>
+                      <span className="text-green-600">{formatCurrency(calculateTotal())}</span>
                     </div>
                   </div>
                 )}
@@ -535,7 +536,7 @@ export default function SalesPage() {
                     size="lg"
                   >
                     <Receipt className="h-5 w-5 mr-2" />
-                    Procesar Venta - ${calculateTotal().toFixed(2)}
+                    Procesar Venta - {formatCurrency(calculateTotal())}
                   </Button>
                 </CardContent>
               </Card>
@@ -619,7 +620,7 @@ export default function SalesPage() {
                         </div>
                       </TableCell>
                       <TableCell className="font-semibold text-green-600">
-                        ${sale.total.toFixed(2)}
+                        {formatCurrency(sale.total)}
                       </TableCell>
                       <TableCell>
                         <Badge className={getPaymentMethodColor(sale.metodoPago)}>

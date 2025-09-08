@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/currency-utils';
 import { useCart } from '@/lib/cart-context';
 
 interface Product {
@@ -286,7 +287,7 @@ export function FloatingCart() {
                           </div>
                           <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3 ml-0 sm:ml-2">
                             <div className="font-bold text-sm md:text-base text-green-600">
-                              ${product.precio.toFixed(2)}
+                              {formatCurrency(product.precio)}
                             </div>
                             <Button
                               size="sm"
@@ -340,7 +341,7 @@ export function FloatingCart() {
                         <h4 className="font-medium text-gray-900 truncate text-sm md:text-base">{item.nombreProducto}</h4>
                         <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-gray-600">
                           <span className="font-medium bg-white px-2 py-1 rounded border">
-                            ${item.precioUnitario.toFixed(2)} c/u
+                            {formatCurrency(item.precioUnitario)} c/u
                           </span>
                           <Badge variant="outline" className="text-xs">
                             {item.tipoVenta === 'caja' ? `Caja (${item.unidadesPorCaja} und)` : 'Unidad'}
@@ -386,7 +387,7 @@ export function FloatingCart() {
 
                         <div className="text-right min-w-[80px] bg-white px-3 py-2 rounded-lg border">
                           <p className="font-bold text-gray-900 text-sm md:text-base">
-                            ${item.precioTotal.toFixed(2)}
+                            {formatCurrency(item.precioTotal)}
                           </p>
                         </div>
                       </div>
@@ -499,13 +500,13 @@ export function FloatingCart() {
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-sm md:text-base">Subtotal:</span>
-                  <span className="font-medium text-sm md:text-base">${calculateSubtotal().toFixed(2)}</span>
+                  <span className="font-medium text-sm md:text-base">{formatCurrency(calculateSubtotal())}</span>
                 </div>
 
                 {descuento > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span className="text-sm md:text-base">Descuento ({descuento}%):</span>
-                    <span>-${((calculateSubtotal() * descuento) / 100).toFixed(2)}</span>
+                    <span>-{formatCurrency((calculateSubtotal() * descuento) / 100)}</span>
                   </div>
                 )}
 
@@ -513,7 +514,7 @@ export function FloatingCart() {
 
                 <div className="flex justify-between text-lg md:text-xl font-bold">
                   <span>Total:</span>
-                  <span>${calculateTotal().toFixed(2)}</span>
+                  <span>{formatCurrency(calculateTotal())}</span>
                 </div>
               </CardContent>
             </Card>
