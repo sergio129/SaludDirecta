@@ -1,11 +1,16 @@
-import NextAuth from 'next-auth';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import NextAuth from 'next-auth/next';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import type { NextAuthOptions } from 'next-auth';
 import dbConnect from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import bcrypt from 'bcryptjs';
 
-export const authOptions: NextAuthOptions = {
+interface Credentials {
+  email: string;
+  password: string;
+}
+
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -13,7 +18,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Contraseña', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials: Credentials | undefined): Promise<any> {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
@@ -46,16 +51,16 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: any) {
       if (user) {
         token.role = user.role;
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (session.user && token) {
         session.user.id = token.sub!;
         session.user.role = token.role as string;

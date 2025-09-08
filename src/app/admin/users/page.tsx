@@ -28,7 +28,7 @@ export default function AdminUsersPage() {
   useEffect(() => {
     if (status === 'loading') return;
 
-    if (!session || session.user.role !== 'admin') {
+    if (!session || !session.user || !(session.user as { role?: string }).role || (session.user as { role?: string }).role !== 'admin') {
       router.push('/dashboard');
       return;
     }
@@ -94,7 +94,7 @@ export default function AdminUsersPage() {
     return <div className="flex justify-center items-center min-h-screen">Cargando...</div>;
   }
 
-  if (!session || session.user.role !== 'admin') {
+  if (!session || !session.user || (session.user as { role?: string }).role !== 'admin') {
     return null;
   }
 
@@ -136,7 +136,7 @@ export default function AdminUsersPage() {
                       <Select
                         value={user.role}
                         onValueChange={(value: string) => changeUserRole(user._id, value)}
-                        disabled={user._id === session?.user?.id} // No permitir cambiar su propio rol
+                        disabled={user._id === (session?.user as { id?: string })?.id} // No permitir cambiar su propio rol
                       >
                         <SelectTrigger className="w-32">
                           <SelectValue />
