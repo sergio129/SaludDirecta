@@ -828,21 +828,62 @@ export default function InventoryPage() {
                         Gestionar categorías
                       </Button>
                     </div>
-                    <Select
-                      value={createForm.categoria}
-                      onValueChange={(value) => setCreateForm({ ...createForm, categoria: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona una categoría" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableCategories.map((category) => (
-                          <SelectItem key={category._id} value={category.nombre}>
-                            {category.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="relative">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isCategoryComboboxOpen}
+                        className="w-full justify-between"
+                        onClick={() => setIsCategoryComboboxOpen(!isCategoryComboboxOpen)}
+                      >
+                        {createForm.categoria
+                          ? availableCategories.find(cat => cat.nombre === createForm.categoria)?.nombre
+                          : "Selecciona una categoría"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                      {isCategoryComboboxOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
+                          <div className="p-2">
+                            <Input
+                              placeholder="Buscar categoría..."
+                              value={categorySearchTerm}
+                              onChange={(e) => setCategorySearchTerm(e.target.value)}
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="max-h-48 overflow-y-auto">
+                            {availableCategories
+                              .filter(category =>
+                                category.nombre.toLowerCase().includes(categorySearchTerm.toLowerCase())
+                              )
+                              .map((category) => (
+                                <div
+                                  key={category._id}
+                                  className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                  onClick={() => {
+                                    setCreateForm({ ...createForm, categoria: category.nombre });
+                                    setCategorySearchTerm('');
+                                    setIsCategoryComboboxOpen(false);
+                                  }}
+                                >
+                                  {createForm.categoria === category.nombre && (
+                                    <Check className="mr-2 h-4 w-4" />
+                                  )}
+                                  <span className="flex-1">{category.nombre}</span>
+                                </div>
+                              ))}
+                            {availableCategories.filter(category =>
+                              category.nombre.toLowerCase().includes(categorySearchTerm.toLowerCase())
+                            ).length === 0 && (
+                              <div className="px-3 py-2 text-gray-500 text-sm">
+                                No se encontraron categorías
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="edit-laboratorio" className="text-sm font-medium text-gray-700">
