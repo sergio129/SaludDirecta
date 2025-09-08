@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle, Tag, Pill, Edit, Trash2 } from 'lucide-react';
+import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle, Tag, Pill, Edit, Trash2, Check, ChevronsUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Product {
@@ -46,6 +46,8 @@ export default function InventoryPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isCategoryComboboxOpen, setIsCategoryComboboxOpen] = useState(false);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
   const [createForm, setCreateForm] = useState({
     nombre: '',
     descripcion: '',
@@ -75,6 +77,34 @@ export default function InventoryPage() {
   useEffect(() => {
     filterProducts();
   }, [products, searchTerm, categoryFilter]);
+
+  // Cerrar combobox de categoría al hacer clic fuera o presionar Escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('[role="combobox"]') && !target.closest('.absolute')) {
+        setIsCategoryComboboxOpen(false);
+        setCategorySearchTerm('');
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsCategoryComboboxOpen(false);
+        setCategorySearchTerm('');
+      }
+    };
+
+    if (isCategoryComboboxOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isCategoryComboboxOpen]);
 
   const fetchProducts = async () => {
     try {
@@ -206,6 +236,28 @@ export default function InventoryPage() {
     setIsEditDialogOpen(true);
   };
 
+  const openCreateDialog = () => {
+    setEditingProduct(null);
+    resetCreateForm();
+    setIsCreateDialogOpen(true);
+  };
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      nombre: '',
+      descripcion: '',
+      precio: '',
+      precioCompra: '',
+      stock: '',
+      stockMinimo: '',
+      categoria: '',
+      laboratorio: '',
+      codigo: '',
+      codigoBarras: '',
+      requiereReceta: false
+    });
+  };
+
   const updateProduct = async () => {
     if (!editingProduct) return;
 
@@ -228,19 +280,7 @@ export default function InventoryPage() {
         toast.success('Producto actualizado exitosamente');
         setIsEditDialogOpen(false);
         setEditingProduct(null);
-        setCreateForm({
-          nombre: '',
-          descripcion: '',
-          precio: '',
-          precioCompra: '',
-          stock: '',
-          stockMinimo: '',
-          categoria: '',
-          laboratorio: '',
-          codigo: '',
-          codigoBarras: '',
-          requiereReceta: false
-        });
+        resetCreateForm();
         fetchProducts();
       } else {
         const error = await response.json();
@@ -345,7 +385,10 @@ export default function InventoryPage() {
               </Button>
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                  <Button
+                    onClick={openCreateDialog}
+                    className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                  >
                     <Plus className="h-4 w-4" />
                     Nuevo Producto
                   </Button>
@@ -509,21 +552,62 @@ export default function InventoryPage() {
                             Gestionar categorías
                           </Button>
                         </div>
-                        <Select
-                          value={createForm.categoria}
-                          onValueChange={(value) => setCreateForm({ ...createForm, categoria: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona una categoría" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableCategories.map((category) => (
-                              <SelectItem key={category._id} value={category.nombre}>
-                                {category.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="relative">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={isCategoryComboboxOpen}
+                            className="w-full justify-between"
+                            onClick={() => setIsCategoryComboboxOpen(!isCategoryComboboxOpen)}
+                          >
+                            {createForm.categoria
+                              ? availableCategories.find(cat => cat.nombre === createForm.categoria)?.nombre
+                              : "Selecciona una categoría"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                          {isCategoryComboboxOpen && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
+                              <div className="p-2">
+                                <Input
+                                  placeholder="Buscar categoría..."
+                                  value={categorySearchTerm}
+                                  onChange={(e) => setCategorySearchTerm(e.target.value)}
+                                  className="w-full"
+                                />
+                              </div>
+                              <div className="max-h-48 overflow-y-auto">
+                                {availableCategories
+                                  .filter(category =>
+                                    category.nombre.toLowerCase().includes(categorySearchTerm.toLowerCase())
+                                  )
+                                  .map((category) => (
+                                    <div
+                                      key={category._id}
+                                      className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                      onClick={() => {
+                                        setCreateForm({ ...createForm, categoria: category.nombre });
+                                        setCategorySearchTerm('');
+                                        setIsCategoryComboboxOpen(false);
+                                      }}
+                                    >
+                                      {createForm.categoria === category.nombre && (
+                                        <Check className="mr-2 h-4 w-4" />
+                                      )}
+                                      <span className="flex-1">{category.nombre}</span>
+                                    </div>
+                                  ))}
+                                {availableCategories.filter(category =>
+                                  category.nombre.toLowerCase().includes(categorySearchTerm.toLowerCase())
+                                ).length === 0 && (
+                                  <div className="px-3 py-2 text-gray-500 text-sm">
+                                    No se encontraron categorías
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="laboratorio" className="text-sm font-medium text-gray-700">
@@ -561,7 +645,10 @@ export default function InventoryPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setIsCreateDialogOpen(false)}
+                    onClick={() => {
+                      resetCreateForm();
+                      setIsCreateDialogOpen(false);
+                    }}
                     className="mr-2"
                   >
                     Cancelar
