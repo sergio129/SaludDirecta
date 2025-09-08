@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface Sale {
   _id: string;
@@ -32,101 +31,220 @@ interface Sale {
 
 export const generateInvoicePDF = async (sale: Sale): Promise<void> => {
   try {
-    // Crear un elemento temporal con el contenido de la factura
-    const invoiceElement = document.createElement('div');
-    invoiceElement.innerHTML = generateInvoiceHTML(sale);
-    invoiceElement.style.width = '800px';
-    invoiceElement.style.padding = '20px';
-    invoiceElement.style.fontFamily = 'Arial, sans-serif';
-    invoiceElement.style.backgroundColor = '#ffffff';
-    invoiceElement.style.color = '#000000';
-    invoiceElement.style.position = 'absolute';
-    invoiceElement.style.left = '-9999px';
-    invoiceElement.style.top = '-9999px';
-    invoiceElement.style.zIndex = '-1';
+    // Crear PDF directamente con jsPDF sin usar html2canvas
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    let yPosition = margin;
 
-    // Agregar estilos inline para evitar problemas con CSS moderno
-    const style = document.createElement('style');
-    style.textContent = `
-      .invoice-header { color: #2563eb !important; }
-      .invoice-title { color: #2563eb !important; font-weight: bold !important; }
-      .table-header { background-color: #f9fafb !important; }
-      .border-default { border-color: #e5e7eb !important; }
-      .text-gray { color: #6b7280 !important; }
-      .text-green { color: #059669 !important; }
-    `;
-    invoiceElement.appendChild(style);
+    // Configurar fuente y colores
+    pdf.setFont('helvetica', 'normal');
 
-    // Agregar al DOM temporalmente
-    document.body.appendChild(invoiceElement);
+    // Función helper para agregar texto con wrapping
+    const addText = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 10, fontWeight: 'normal' | 'bold' = 'normal') => {
+      pdf.setFontSize(fontSize);
+      pdf.setFont('helvetica', fontWeight);
+      const lines = pdf.splitTextToSize(text, maxWidth);
+      pdf.text(lines, x, y);
+      return y + (lines.length * fontSize * 0.4);
+    };
 
-    // Esperar a que se renderice completamente
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Función helper para centrar texto
+    const centerText = (text: string, y: number, fontSize: number = 12, fontWeight: 'normal' | 'bold' = 'normal') => {
+      pdf.setFontSize(fontSize);
+      pdf.setFont('helvetica', fontWeight);
+      const textWidth = pdf.getTextWidth(text);
+      const x = (pageWidth - textWidth) / 2;
+      pdf.text(text, x, y);
+      return y + fontSize * 0.6;
+    };
 
-    // Generar canvas con configuración optimizada
-    const canvas = await html2canvas(invoiceElement, {
-      scale: 2,
-      useCORS: false,
-      allowTaint: false,
-      backgroundColor: '#ffffff',
-      width: 800,
-      height: invoiceElement.scrollHeight,
-      scrollX: 0,
-      scrollY: 0,
-      windowWidth: 800,
-      windowHeight: invoiceElement.scrollHeight,
-      ignoreElements: (element) => {
-        // Ignorar elementos que puedan causar problemas
-        return element.classList.contains('no-print') ||
-               element.tagName === 'SCRIPT' ||
-               element.tagName === 'STYLE';
+    // Header
+    yPosition = centerText('SaludDirecta', yPosition, 20, 'bold');
+    yPosition = centerText('Sistema de Gestión Farmacéutica', yPosition + 2, 12, 'normal');
+    yPosition = centerText('Factura Electrónica', yPosition + 2, 10, 'normal');
+
+    // Línea separadora
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, yPosition + 5, pageWidth - margin, yPosition + 5);
+    yPosition += 15;
+
+    // Información de la venta y cliente
+    const leftColumnX = margin;
+    const rightColumnX = pageWidth / 2 + 10;
+
+    // Información de la venta (izquierda)
+    yPosition = addText('INFORMACIÓN DE LA VENTA', leftColumnX, yPosition, pageWidth / 2 - margin, 12, 'bold');
+    yPosition += 5;
+    yPosition = addText(`Factura: ${sale.numeroFactura}`, leftColumnX, yPosition, pageWidth / 2 - margin);
+    yPosition = addText(`Fecha: ${new Intl.DateTimeFormat('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(new Date(sale.fechaVenta))}`, leftColumnX, yPosition, pageWidth / 2 - margin);
+    yPosition = addText(`Estado: ${sale.estado}`, leftColumnX, yPosition, pageWidth / 2 - margin);
+    if (sale.vendedor) {
+      yPosition = addText(`Vendedor: ${sale.vendedor.name}`, leftColumnX, yPosition, pageWidth / 2 - margin);
+    }
+
+    // Reset yPosition para la columna derecha
+    let rightYPosition = margin + 20;
+
+    // Información del cliente (derecha)
+    rightYPosition = addText('INFORMACIÓN DEL CLIENTE', rightColumnX, rightYPosition, pageWidth / 2 - margin, 12, 'bold');
+    rightYPosition += 5;
+    rightYPosition = addText(`Nombre: ${sale.cliente?.nombre || 'Cliente General'}`, rightColumnX, rightYPosition, pageWidth / 2 - margin);
+    if (sale.cliente?.cedula) {
+      rightYPosition = addText(`Cédula: ${sale.cliente.cedula}`, rightColumnX, rightYPosition, pageWidth / 2 - margin);
+    }
+    if (sale.cliente?.telefono) {
+      rightYPosition = addText(`Teléfono: ${sale.cliente.telefono}`, rightColumnX, rightYPosition, pageWidth / 2 - margin);
+    }
+
+    // Usar la posición más baja entre las dos columnas
+    yPosition = Math.max(yPosition, rightYPosition) + 15;
+
+    // Verificar si necesitamos una nueva página
+    if (yPosition > pageHeight - 60) {
+      pdf.addPage();
+      yPosition = margin;
+    }
+
+    // Tabla de productos
+    yPosition = addText('DETALLES DE PRODUCTOS', margin, yPosition, pageWidth - 2 * margin, 12, 'bold');
+    yPosition += 10;
+
+    // Headers de tabla
+    const tableStartY = yPosition;
+    const colWidths = [80, 20, 35, 35]; // Ancho de cada columna
+    const colPositions = [margin];
+    for (let i = 1; i < colWidths.length; i++) {
+      colPositions.push(colPositions[i-1] + colWidths[i-1]);
+    }
+
+    // Dibujar headers
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(margin, yPosition - 5, pageWidth - 2 * margin, 8, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.text('Producto', colPositions[0] + 2, yPosition);
+    pdf.text('Cant.', colPositions[1] + 2, yPosition);
+    pdf.text('Precio Unit.', colPositions[2] + 2, yPosition);
+    pdf.text('Total', colPositions[3] + 2, yPosition);
+
+    yPosition += 8;
+
+    // Líneas de productos
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+
+    sale.items.forEach((item, index) => {
+      // Verificar si necesitamos una nueva página
+      if (yPosition > pageHeight - 30) {
+        pdf.addPage();
+        yPosition = margin;
+
+        // Repetir headers en nueva página
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(margin, yPosition - 5, pageWidth - 2 * margin, 8, 'F');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9);
+        pdf.text('Producto', colPositions[0] + 2, yPosition);
+        pdf.text('Cant.', colPositions[1] + 2, yPosition);
+        pdf.text('Precio Unit.', colPositions[2] + 2, yPosition);
+        pdf.text('Total', colPositions[3] + 2, yPosition);
+        yPosition += 8;
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
       }
+
+      // Dibujar fila
+      const rowHeight = 6;
+      if (index % 2 === 0) {
+        pdf.setFillColor(250, 250, 250);
+        pdf.rect(margin, yPosition - 2, pageWidth - 2 * margin, rowHeight, 'F');
+      }
+
+      // Texto de las celdas
+      const productName = item.nombreProducto.length > 25 ? item.nombreProducto.substring(0, 22) + '...' : item.nombreProducto;
+      pdf.text(productName, colPositions[0] + 2, yPosition);
+      pdf.text(item.cantidad.toString(), colPositions[1] + 2, yPosition);
+      pdf.text(new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(item.precioUnitario), colPositions[2] + 2, yPosition);
+      pdf.text(new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(item.precioTotal), colPositions[3] + 2, yPosition);
+
+      yPosition += rowHeight;
     });
 
-    // Remover elemento temporal
-    document.body.removeChild(invoiceElement);
+    // Bordes de tabla
+    pdf.setLineWidth(0.2);
+    pdf.rect(margin, tableStartY - 5, pageWidth - 2 * margin, yPosition - tableStartY + 3);
 
-    // Crear PDF
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    yPosition += 10;
 
-    const imgWidth = 210; // A4 width in mm
-    const pageHeight = 295; // A4 height in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    // Si la imagen cabe en una página
-    if (imgHeight <= pageHeight) {
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
-    } else {
-      // Dividir en múltiples páginas
-      let yPosition = 0;
-      while (yPosition < imgHeight) {
-        if (yPosition > 0) {
-          pdf.addPage();
-        }
-
-        const remainingHeight = imgHeight - yPosition;
-        const pageContentHeight = Math.min(pageHeight, remainingHeight);
-
-        // Crear canvas temporal para esta página
-        const pageCanvas = document.createElement('canvas');
-        const pageCtx = pageCanvas.getContext('2d');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = (pageContentHeight / imgWidth) * canvas.width;
-
-        if (pageCtx) {
-          const sourceY = (yPosition / imgWidth) * canvas.width;
-          pageCtx.drawImage(
-            canvas,
-            0, sourceY, canvas.width, pageCanvas.height,
-            0, 0, canvas.width, pageCanvas.height
-          );
-
-          pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, pageContentHeight);
-        }
-
-        yPosition += pageContentHeight;
-      }
+    // Verificar si necesitamos una nueva página para totales
+    if (yPosition > pageHeight - 60) {
+      pdf.addPage();
+      yPosition = margin;
     }
+
+    // Totales (columna derecha)
+    const totalsX = pageWidth - margin - 80;
+    yPosition = addText('RESUMEN', totalsX, yPosition, 80, 12, 'bold');
+    yPosition += 5;
+
+    yPosition = addText(`Subtotal: ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.subtotal)}`, totalsX, yPosition, 80);
+    if (sale.descuento > 0) {
+      yPosition = addText(`Descuento (${sale.descuento}%): -${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format((sale.subtotal * sale.descuento) / 100)}`, totalsX, yPosition, 80);
+    }
+    if (sale.impuesto > 0) {
+      yPosition = addText(`Impuesto: ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.impuesto)}`, totalsX, yPosition, 80);
+    }
+
+    // Línea separadora para total
+    pdf.setLineWidth(0.5);
+    pdf.line(totalsX, yPosition + 2, totalsX + 80, yPosition + 2);
+    yPosition += 8;
+
+    // Total
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.text(`TOTAL: ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.total)}`, totalsX, yPosition);
+    yPosition += 8;
+
+    // Método de pago
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.text(`Método de pago: ${sale.metodoPago}`, totalsX, yPosition);
+
+    yPosition += 15;
+
+    // Notas si existen
+    if (sale.notas) {
+      if (yPosition > pageHeight - 40) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+      yPosition = addText('NOTAS:', margin, yPosition, pageWidth - 2 * margin, 10, 'bold');
+      yPosition += 5;
+      yPosition = addText(sale.notas, margin, yPosition, pageWidth - 2 * margin, 9);
+      yPosition += 10;
+    }
+
+    // Footer
+    if (yPosition > pageHeight - 30) {
+      pdf.addPage();
+      yPosition = margin;
+    }
+
+    pdf.setFont('helvetica', 'italic');
+    pdf.setFontSize(8);
+    const footerText = 'Gracias por su compra en SaludDirecta - Factura generada automáticamente';
+    const footerWidth = pdf.getTextWidth(footerText);
+    const footerX = (pageWidth - footerWidth) / 2;
+    pdf.text(footerText, footerX, pageHeight - 15);
 
     // Descargar PDF
     const fileName = `Factura-${sale.numeroFactura.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
@@ -136,125 +254,6 @@ export const generateInvoicePDF = async (sale: Sale): Promise<void> => {
     console.error('Error generando PDF:', error);
     throw new Error(`Error al generar el PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
   }
-};
-
-const generateInvoiceHTML = (sale: Sale): string => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(date));
-  };
-
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-      <!-- Header -->
-      <div style="text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px;">
-        <h1 style="color: #2563eb; font-size: 32px; margin: 0; font-weight: bold;">SaludDirecta</h1>
-        <p style="color: #6b7280; margin: 5px 0; font-size: 16px;">Sistema de Gestión Farmacéutica</p>
-        <p style="color: #9ca3af; margin: 5px 0; font-size: 14px;">Factura Electrónica</p>
-      </div>
-
-      <!-- Invoice Info -->
-      <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
-        <div style="flex: 1;">
-          <h3 style="color: #111827; font-size: 18px; margin-bottom: 10px; font-weight: bold;">Información de la Venta</h3>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Factura:</strong> ${sale.numeroFactura}</p>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Fecha:</strong> ${formatDate(sale.fechaVenta)}</p>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Estado:</strong> ${sale.estado}</p>
-          ${sale.vendedor ? `<p style="margin: 5px 0; font-size: 14px;"><strong>Vendedor:</strong> ${sale.vendedor.name}</p>` : ''}
-        </div>
-        <div style="flex: 1;">
-          <h3 style="color: #111827; font-size: 18px; margin-bottom: 10px; font-weight: bold;">Información del Cliente</h3>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Nombre:</strong> ${sale.cliente?.nombre || 'Cliente General'}</p>
-          ${sale.cliente?.cedula ? `<p style="margin: 5px 0; font-size: 14px;"><strong>Cédula:</strong> ${sale.cliente.cedula}</p>` : ''}
-          ${sale.cliente?.telefono ? `<p style="margin: 5px 0; font-size: 14px;"><strong>Teléfono:</strong> ${sale.cliente.telefono}</p>` : ''}
-        </div>
-      </div>
-
-      <!-- Products Table -->
-      <div style="margin-bottom: 30px;">
-        <h3 style="color: #111827; font-size: 18px; margin-bottom: 15px; font-weight: bold;">Detalles de Productos</h3>
-        <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb;">
-          <thead>
-            <tr style="background-color: #f9fafb;">
-              <th style="border: 1px solid #e5e7eb; padding: 10px; text-align: left; font-weight: bold;">Producto</th>
-              <th style="border: 1px solid #e5e7eb; padding: 10px; text-align: center; font-weight: bold;">Cant.</th>
-              <th style="border: 1px solid #e5e7eb; padding: 10px; text-align: right; font-weight: bold;">Precio Unit.</th>
-              <th style="border: 1px solid #e5e7eb; padding: 10px; text-align: right; font-weight: bold;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${sale.items.map(item => `
-              <tr>
-                <td style="border: 1px solid #e5e7eb; padding: 10px;">${item.nombreProducto}</td>
-                <td style="border: 1px solid #e5e7eb; padding: 10px; text-align: center;">${item.cantidad}</td>
-                <td style="border: 1px solid #e5e7eb; padding: 10px; text-align: right;">${formatCurrency(item.precioUnitario)}</td>
-                <td style="border: 1px solid #e5e7eb; padding: 10px; text-align: right; font-weight: bold;">${formatCurrency(item.precioTotal)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Totals -->
-      <div style="display: flex; justify-content: flex-end; margin-bottom: 30px;">
-        <div style="width: 250px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>Subtotal:</span>
-            <span>${formatCurrency(sale.subtotal)}</span>
-          </div>
-          ${sale.descuento > 0 ? `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #059669;">
-              <span>Descuento (${sale.descuento}%):</span>
-              <span>-${formatCurrency((sale.subtotal * sale.descuento) / 100)}</span>
-            </div>
-          ` : ''}
-          ${sale.impuesto > 0 ? `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <span>Impuesto:</span>
-              <span>${formatCurrency(sale.impuesto)}</span>
-            </div>
-          ` : ''}
-          <div style="border-top: 1px solid #e5e7eb; margin: 10px 0;"></div>
-          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 18px;">
-            <span>Total:</span>
-            <span>${formatCurrency(sale.total)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 14px; color: #6b7280;">
-            <span>Método de pago:</span>
-            <span style="text-transform: capitalize;">${sale.metodoPago}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Notes -->
-      ${sale.notas ? `
-        <div style="margin-bottom: 30px;">
-          <h3 style="color: #111827; font-size: 18px; margin-bottom: 10px; font-weight: bold;">Notas</h3>
-          <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; border: 1px solid #e5e7eb;">
-            ${sale.notas}
-          </div>
-        </div>
-      ` : ''}
-
-      <!-- Footer -->
-      <div style="text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px; color: #9ca3af; font-size: 12px;">
-        <p style="margin: 5px 0;">Gracias por su compra en SaludDirecta</p>
-        <p style="margin: 5px 0;">Factura generada automáticamente por el sistema</p>
-      </div>
-    </div>
-  `;
 };
 
 export const printInvoice = (sale: Sale): void => {
@@ -352,7 +351,96 @@ export const printInvoice = (sale: Sale): void => {
     </head>
     <body>
       <div class="invoice-container">
-        ${generateInvoiceHTML(sale)}
+        <div class="header">
+          <h1>SaludDirecta</h1>
+          <p>Sistema de Gestión Farmacéutica</p>
+          <p>Factura Electrónica</p>
+        </div>
+
+        <div class="info-section">
+          <div>
+            <h3>Información de la Venta</h3>
+            <p><strong>Factura:</strong> ${sale.numeroFactura}</p>
+            <p><strong>Fecha:</strong> ${new Intl.DateTimeFormat('es-ES', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            }).format(new Date(sale.fechaVenta))}</p>
+            <p><strong>Estado:</strong> ${sale.estado}</p>
+            ${sale.vendedor ? `<p><strong>Vendedor:</strong> ${sale.vendedor.name}</p>` : ''}
+          </div>
+          <div>
+            <h3>Información del Cliente</h3>
+            <p><strong>Nombre:</strong> ${sale.cliente?.nombre || 'Cliente General'}</p>
+            ${sale.cliente?.cedula ? `<p><strong>Cédula:</strong> ${sale.cliente.cedula}</p>` : ''}
+            ${sale.cliente?.telefono ? `<p><strong>Teléfono:</strong> ${sale.cliente.telefono}</p>` : ''}
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th class="text-center">Cant.</th>
+              <th class="text-right">Precio Unit.</th>
+              <th class="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sale.items.map(item => `
+              <tr>
+                <td>${item.nombreProducto}</td>
+                <td class="text-center">${item.cantidad}</td>
+                <td class="text-right">${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(item.precioUnitario)}</td>
+                <td class="text-right">${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(item.precioTotal)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <div>
+            <div class="total-row">
+              <span>Subtotal:</span>
+              <span>${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.subtotal)}</span>
+            </div>
+            ${sale.descuento > 0 ? `
+              <div class="total-row">
+                <span>Descuento (${sale.descuento}%):</span>
+                <span>-${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format((sale.subtotal * sale.descuento) / 100)}</span>
+              </div>
+            ` : ''}
+            ${sale.impuesto > 0 ? `
+              <div class="total-row">
+                <span>Impuesto:</span>
+                <span>${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.impuesto)}</span>
+              </div>
+            ` : ''}
+            <div class="total-row" style="border-top: 2px solid #000;">
+              <span>TOTAL:</span>
+              <span>${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(sale.total)}</span>
+            </div>
+            <div style="margin-top: 10px; font-size: 12px;">
+              <strong>Método de pago:</strong> ${sale.metodoPago}
+            </div>
+          </div>
+        </div>
+
+        ${sale.notas ? `
+          <div style="margin-top: 30px;">
+            <h3>Notas</h3>
+            <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; border: 1px solid #e5e7eb;">
+              ${sale.notas}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="footer">
+          <p>Gracias por su compra en SaludDirecta</p>
+          <p>Factura generada automáticamente por el sistema</p>
+        </div>
       </div>
     </body>
     </html>
