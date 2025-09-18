@@ -22,7 +22,10 @@ interface Product {
   descripcion: string;
   precio: number;
   precioCompra: number;
-  stock: number;
+  stockCajas: number;
+  unidadesPorCaja: number;
+  stockUnidadesSueltas: number;
+  stock: number; // Total calculated stock
   stockMinimo: number;
   categoria: string;
   laboratorio: string;
@@ -55,7 +58,9 @@ export default function InventoryPage() {
     descripcion: '',
     precio: '',
     precioCompra: '',
-    stock: '',
+    stockCajas: '',
+    unidadesPorCaja: '',
+    stockUnidadesSueltas: '',
     stockMinimo: '',
     categoria: '',
     laboratorio: '',
@@ -188,7 +193,9 @@ export default function InventoryPage() {
           ...createForm,
           precio: parseFloat(createForm.precio),
           precioCompra: parseFloat(createForm.precioCompra),
-          stock: parseInt(createForm.stock),
+          stockCajas: parseInt(createForm.stockCajas) || 0,
+          unidadesPorCaja: parseInt(createForm.unidadesPorCaja) || 1,
+          stockUnidadesSueltas: parseInt(createForm.stockUnidadesSueltas) || 0,
           stockMinimo: parseInt(createForm.stockMinimo)
         }),
       });
@@ -227,7 +234,9 @@ export default function InventoryPage() {
       descripcion: product.descripcion,
       precio: product.precio.toString(),
       precioCompra: product.precioCompra.toString(),
-      stock: product.stock.toString(),
+      stockCajas: product.stockCajas.toString(),
+      unidadesPorCaja: product.unidadesPorCaja.toString(),
+      stockUnidadesSueltas: product.stockUnidadesSueltas.toString(),
       stockMinimo: product.stockMinimo.toString(),
       categoria: product.categoria,
       laboratorio: product.laboratorio,
@@ -250,7 +259,9 @@ export default function InventoryPage() {
       descripcion: '',
       precio: '',
       precioCompra: '',
-      stock: '',
+      stockCajas: '',
+      unidadesPorCaja: '',
+      stockUnidadesSueltas: '',
       stockMinimo: '',
       categoria: '',
       laboratorio: '',
@@ -283,7 +294,9 @@ export default function InventoryPage() {
           ...createForm,
           precio: parseFloat(createForm.precio),
           precioCompra: parseFloat(createForm.precioCompra),
-          stock: parseInt(createForm.stock),
+          stockCajas: parseInt(createForm.stockCajas) || 0,
+          unidadesPorCaja: parseInt(createForm.unidadesPorCaja) || 1,
+          stockUnidadesSueltas: parseInt(createForm.stockUnidadesSueltas) || 0,
           stockMinimo: parseInt(createForm.stockMinimo)
         }),
       });
@@ -515,33 +528,62 @@ export default function InventoryPage() {
                   {/* Sección de Inventario */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Control de Inventario</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="stock" className="text-sm font-medium text-gray-700">
-                          Stock Inicial *
+                        <Label htmlFor="stockCajas" className="text-sm font-medium text-gray-700">
+                          Cajas *
                         </Label>
                         <Input
-                          id="stock"
+                          id="stockCajas"
                           type="number"
-                          value={createForm.stock}
-                          onChange={(e) => setCreateForm({ ...createForm, stock: e.target.value })}
+                          value={createForm.stockCajas}
+                          onChange={(e) => setCreateForm({ ...createForm, stockCajas: e.target.value })}
                           placeholder="0"
                           className="text-right"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="stockMinimo" className="text-sm font-medium text-gray-700">
-                          Stock Mínimo *
+                        <Label htmlFor="unidadesPorCaja" className="text-sm font-medium text-gray-700">
+                          Unidades por Caja *
                         </Label>
                         <Input
-                          id="stockMinimo"
+                          id="unidadesPorCaja"
                           type="number"
-                          value={createForm.stockMinimo}
-                          onChange={(e) => setCreateForm({ ...createForm, stockMinimo: e.target.value })}
+                          value={createForm.unidadesPorCaja}
+                          onChange={(e) => setCreateForm({ ...createForm, unidadesPorCaja: e.target.value })}
+                          placeholder="1"
+                          className="text-right"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="stockUnidadesSueltas" className="text-sm font-medium text-gray-700">
+                          Unidades Sueltas
+                        </Label>
+                        <Input
+                          id="stockUnidadesSueltas"
+                          type="number"
+                          value={createForm.stockUnidadesSueltas}
+                          onChange={(e) => setCreateForm({ ...createForm, stockUnidadesSueltas: e.target.value })}
                           placeholder="0"
                           className="text-right"
                         />
                       </div>
+                    </div>
+                    <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+                      <strong>Total estimado:</strong> {((parseInt(createForm.stockCajas) || 0) * (parseInt(createForm.unidadesPorCaja) || 1)) + (parseInt(createForm.stockUnidadesSueltas) || 0)} unidades
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="stockMinimo" className="text-sm font-medium text-gray-700">
+                        Stock Mínimo *
+                      </Label>
+                      <Input
+                        id="stockMinimo"
+                        type="number"
+                        value={createForm.stockMinimo}
+                        onChange={(e) => setCreateForm({ ...createForm, stockMinimo: e.target.value })}
+                        placeholder="0"
+                        className="text-right"
+                      />
                     </div>
                   </div>
 
@@ -791,33 +833,62 @@ export default function InventoryPage() {
               {/* Sección de Inventario */}
               <div className="space-y-4">
                 <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Control de Inventario</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-stock" className="text-sm font-medium text-gray-700">
-                      Stock Actual *
+                    <Label htmlFor="edit-stockCajas" className="text-sm font-medium text-gray-700">
+                      Cajas *
                     </Label>
                     <Input
-                      id="edit-stock"
+                      id="edit-stockCajas"
                       type="number"
-                      value={createForm.stock}
-                      onChange={(e) => setCreateForm({ ...createForm, stock: e.target.value })}
+                      value={createForm.stockCajas}
+                      onChange={(e) => setCreateForm({ ...createForm, stockCajas: e.target.value })}
                       placeholder="0"
                       className="text-right"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-stockMinimo" className="text-sm font-medium text-gray-700">
-                      Stock Mínimo *
+                    <Label htmlFor="edit-unidadesPorCaja" className="text-sm font-medium text-gray-700">
+                      Unidades por Caja *
                     </Label>
                     <Input
-                      id="edit-stockMinimo"
+                      id="edit-unidadesPorCaja"
                       type="number"
-                      value={createForm.stockMinimo}
-                      onChange={(e) => setCreateForm({ ...createForm, stockMinimo: e.target.value })}
+                      value={createForm.unidadesPorCaja}
+                      onChange={(e) => setCreateForm({ ...createForm, unidadesPorCaja: e.target.value })}
+                      placeholder="1"
+                      className="text-right"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-stockUnidadesSueltas" className="text-sm font-medium text-gray-700">
+                      Unidades Sueltas
+                    </Label>
+                    <Input
+                      id="edit-stockUnidadesSueltas"
+                      type="number"
+                      value={createForm.stockUnidadesSueltas}
+                      onChange={(e) => setCreateForm({ ...createForm, stockUnidadesSueltas: e.target.value })}
                       placeholder="0"
                       className="text-right"
                     />
                   </div>
+                </div>
+                <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+                  <strong>Total estimado:</strong> {((parseInt(createForm.stockCajas) || 0) * (parseInt(createForm.unidadesPorCaja) || 1)) + (parseInt(createForm.stockUnidadesSueltas) || 0)} unidades
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-stockMinimo" className="text-sm font-medium text-gray-700">
+                    Stock Mínimo *
+                  </Label>
+                  <Input
+                    id="edit-stockMinimo"
+                    type="number"
+                    value={createForm.stockMinimo}
+                    onChange={(e) => setCreateForm({ ...createForm, stockMinimo: e.target.value })}
+                    placeholder="0"
+                    className="text-right"
+                  />
                 </div>
               </div>
 
@@ -1070,12 +1141,17 @@ export default function InventoryPage() {
                         </TableCell>
                         <TableCell className="py-4 px-6">
                           <div className="flex items-center gap-2">
-                            <span className={`font-bold text-lg ${
-                              product.stock <= product.stockMinimo ? 'text-red-600' :
-                              product.stock <= product.stockMinimo * 1.5 ? 'text-yellow-600' : 'text-green-600'
-                            }`}>
-                              {product.stock}
-                            </span>
+                            <div className="text-sm">
+                              <div className={`font-bold text-lg ${
+                                product.stock <= product.stockMinimo ? 'text-red-600' :
+                                product.stock <= product.stockMinimo * 1.5 ? 'text-yellow-600' : 'text-green-600'
+                              }`}>
+                                {product.stock} total
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {product.stockCajas} cajas × {product.unidadesPorCaja} + {product.stockUnidadesSueltas} sueltas
+                              </div>
+                            </div>
                             {product.stock <= product.stockMinimo && (
                               <StatusIcon className="h-5 w-5 text-red-500 animate-pulse" />
                             )}

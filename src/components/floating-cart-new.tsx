@@ -17,14 +17,20 @@ interface Product {
   descripcion: string;
   precio: number;
   precioCompra: number;
-  stock: number;
-  stockMinimo: number;
+  stock: number; // Total de unidades (calculado automáticamente)
+  stockCajas: number; // Número de cajas completas
+  stockUnidadesSueltas: number; // Unidades sueltas
   categoria: string;
   laboratorio: string;
   codigo?: string;
   codigoBarras?: string;
   requiereReceta: boolean;
   activo: boolean;
+  // Nuevos campos para unidades y empaques
+  unidadesPorEmpaque?: number;
+  tipoVenta: 'unidad' | 'empaque' | 'ambos';
+  precioPorUnidad?: number;
+  precioPorEmpaque?: number;
   fechaCreacion: string;
 }
 
@@ -115,8 +121,8 @@ export function FloatingCart() {
     }
   };
 
-  const handleAddProductFromSearch = (product: Product) => {
-    addToCart(product, 'unidad', 1);
+  const handleAddProductFromSearch = (product: Product, tipoVenta: 'unidad' | 'empaque' = 'unidad') => {
+    addToCart(product, tipoVenta);
     setSearchTerm('');
     setSearchResults([]);
     setShowSearchResults(false);
@@ -237,16 +243,47 @@ export function FloatingCart() {
                         {searchResults.map((product) => (
                           <div
                             key={product._id}
-                            className="flex items-center justify-between p-1.5 sm:p-2 hover:bg-gray-50 rounded cursor-pointer border-b last:border-b-0"
-                            onClick={() => handleAddProductFromSearch(product)}
+                            className="p-1.5 sm:p-2 hover:bg-gray-50 rounded border-b last:border-b-0"
                           >
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 mb-2">
                               <div className="font-medium text-xs truncate">{product.nombre}</div>
-                              <div className="text-xs text-gray-500">{formatCurrency(product.precio)}</div>
+                              <div className="text-xs text-gray-500">
+                                {product.tipoVenta === 'ambos' ? (
+                                  <>
+                                    Unidad: {formatCurrency(product.precioPorUnidad || product.precio)} | 
+                                    Empaque ({product.unidadesPorEmpaque || 1}): {formatCurrency(product.precioPorEmpaque || product.precio)}
+                                  </>
+                                ) : (
+                                  formatCurrency(product.precio)
+                                )}
+                                <br />
+                                <span className="text-blue-600">
+                                  Stock: {product.stock} unidades ({product.stockCajas} cajas + {product.stockUnidadesSueltas} sueltas)
+                                </span>
+                              </div>
                             </div>
-                            <Button size="sm" variant="outline" className="text-xs h-5 sm:h-6 px-1 sm:px-2">
-                              <Plus className="w-2 h-2 sm:w-3 sm:h-3" />
-                            </Button>
+                            <div className="flex gap-1">
+                              {product.tipoVenta === 'unidad' || product.tipoVenta === 'ambos' ? (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-xs h-6 px-1 flex-1"
+                                  onClick={() => handleAddProductFromSearch(product, 'unidad')}
+                                >
+                                  Unidad
+                                </Button>
+                              ) : null}
+                              {product.tipoVenta === 'empaque' || product.tipoVenta === 'ambos' ? (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-xs h-6 px-1 flex-1"
+                                  onClick={() => handleAddProductFromSearch(product, 'empaque')}
+                                >
+                                  Empaque
+                                </Button>
+                              ) : null}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -275,7 +312,10 @@ export function FloatingCart() {
                       <div className="flex justify-between items-start mb-1">
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-xs truncate">{item.nombreProducto}</h4>
-                          <div className="text-xs text-gray-600">{formatCurrency(item.precioUnitario)} c/u</div>
+                          <div className="text-xs text-gray-600">
+                            {formatCurrency(item.precioUnitario)} c/u 
+                            <span className="text-blue-600 font-medium">({item.tipoVenta})</span>
+                          </div>
                         </div>
                         <Button
                           variant="destructive"
@@ -482,10 +522,9 @@ export function FloatingCart() {
                         {searchResults.map((product) => (
                           <div
                             key={product._id}
-                            className="flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer border-b last:border-b-0"
-                            onClick={() => handleAddProductFromSearch(product)}
+                            className="p-2 hover:bg-gray-50 rounded border-b last:border-b-0"
                           >
-                            <div className="flex-1 min-w-0 space-y-0.5">
+                            <div className="flex-1 min-w-0 space-y-0.5 mb-2">
                               <div className="font-medium text-sm truncate">{product.nombre}</div>
                               <div className="flex flex-wrap items-center gap-1 text-xs text-gray-500">
                                 {product.codigo && (
@@ -494,25 +533,49 @@ export function FloatingCart() {
                                   </span>
                                 )}
                                 <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-xs">
-                                  Stock: {product.stock}
+                                  Stock: {product.stock} unidades ({product.stockCajas} cajas + {product.stockUnidadesSueltas} sueltas)
                                 </span>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-2 ml-2">
-                              <div className="font-bold text-sm text-green-600">
-                                {formatCurrency(product.precio)}
+                              <div className="text-xs text-gray-600">
+                                {product.tipoVenta === 'ambos' ? (
+                                  <>
+                                    Unidad: {formatCurrency(product.precioPorUnidad || product.precio)} | 
+                                    Empaque ({product.unidadesPorEmpaque || 1}): {formatCurrency(product.precioPorEmpaque || product.precio)}
+                                  </>
+                                ) : (
+                                  `Precio: ${formatCurrency(product.precio)}`
+                                )}
                               </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs h-7 px-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAddProductFromSearch(product);
-                                }}
-                              >
-                                <Plus className="w-3 h-3" />
-                              </Button>
+                            </div>
+                            <div className="flex gap-1">
+                              {product.tipoVenta === 'unidad' || product.tipoVenta === 'ambos' ? (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-xs h-7 px-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddProductFromSearch(product, 'unidad');
+                                  }}
+                                >
+                                  <Plus className="w-3 h-3 mr-1" />
+                                  Unidad
+                                </Button>
+                              ) : null}
+                              {product.tipoVenta === 'empaque' || product.tipoVenta === 'ambos' ? (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-xs h-7 px-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddProductFromSearch(product, 'empaque');
+                                  }}
+                                >
+                                  <Plus className="w-3 h-3 mr-1" />
+                                  Empaque
+                                </Button>
+                              ) : null}
                             </div>
                           </div>
                         ))}
@@ -552,7 +615,8 @@ export function FloatingCart() {
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-sm truncate">{item.nombreProducto}</h4>
                             <div className="text-xs text-gray-600">
-                              {formatCurrency(item.precioUnitario)} c/u
+                              {formatCurrency(item.precioUnitario)} c/u 
+                              <span className="text-blue-600 font-medium">({item.tipoVenta})</span>
                             </div>
                           </div>
                           <Button

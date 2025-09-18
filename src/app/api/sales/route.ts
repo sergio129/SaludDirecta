@@ -53,10 +53,37 @@ export async function POST(request: NextRequest) {
       if (!product) {
         return NextResponse.json({ error: `Producto ${item.nombreProducto} no encontrado` }, { status: 400 });
       }
-      if (product.stock < item.cantidad) {
-        return NextResponse.json({ error: `Stock insuficiente para ${item.nombreProducto}. Disponible: ${product.stock}` }, { status: 400 });
+
+      // Verificar que el producto permita este tipo de venta
+      if (!product.puedeVenderComo(item.tipoVenta)) {
+        return NextResponse.json({
+          error: `El producto ${item.nombreProducto} no se puede vender como ${item.tipoVenta}`
+        }, { status: 400 });
       }
-      subtotal += item.precioTotal;
+
+      // Calcular unidades que se van a vender
+      const unidadesRequeridas = item.tipoVenta === 'empaque'
+        ? (product.unidadesPorEmpaque || 1) * item.cantidad
+        : item.cantidad;
+
+      // Verificar que hay suficiente stock
+      if (product.stock < unidadesRequeridas) {
+        const infoStock = product.getInfoStock();
+        const stockDisponible = item.tipoVenta === 'empaque'
+          ? Math.floor(product.stock / (product.unidadesPorEmpaque || 1))
+          : product.stock;
+        return NextResponse.json({
+          error: `Stock insuficiente para ${item.nombreProducto}. Disponible: ${stockDisponible} ${item.tipoVenta}(s) (${infoStock.cajasCompletas} cajas + ${infoStock.unidadesSueltas} unidades)`
+        }, { status: 400 });
+      }
+
+      // Usar el precio correcto según el tipo de venta
+      const precioCorrecto = product.getPrecio(item.tipoVenta);
+
+      // Recalcular precioTotal si es necesario
+      const precioTotalCorrecto = precioCorrecto * item.cantidad;
+
+      subtotal += precioTotalCorrecto;
     }
 
     // Generar número de factura único
@@ -83,10 +110,22 @@ export async function POST(request: NextRequest) {
 
     // Actualizar stock de productos
     for (const item of items) {
-      await Product.findByIdAndUpdate(
-        item.producto,
-        { $inc: { stock: -item.cantidad } }
-      );
+      const product = await Product.findById(item.producto);
+      if (product) {
+        try {
+          // Usar el nuevo método venderUnidades que maneja cajas y unidades automáticamente
+          const unidadesAVender = item.tipoVenta === 'empaque'
+            ? (product.unidadesPorEmpaque || 1) * item.cantidad
+            : item.cantidad;
+
+          product.venderUnidades(unidadesAVender);
+          await product.save();
+        } catch (error) {
+          return NextResponse.json({
+            error: `Error actualizando stock de ${item.nombreProducto}: ${error instanceof Error ? error.message : 'Error desconocido'}`
+          }, { status: 400 });
+        }
+      }
     }
 
     await sale.save();

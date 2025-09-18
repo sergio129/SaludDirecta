@@ -9,25 +9,35 @@ interface Product {
   descripcion: string
   precio: number
   precioCompra: number
-  stock: number
-  stockMinimo: number
+  stock: number // Total de unidades (calculado automáticamente)
+  stockCajas: number // Número de cajas completas
+  stockUnidadesSueltas: number // Unidades sueltas
   categoria: string
   laboratorio: string
   codigo?: string
   codigoBarras?: string
   requiereReceta: boolean
   activo: boolean
+  // Nuevos campos para unidades y empaques
+  unidadesPorEmpaque?: number
+  tipoVenta: 'unidad' | 'empaque' | 'ambos'
+  precioPorUnidad?: number
+  precioPorEmpaque?: number
   fechaCreacion: string
+  // Métodos auxiliares
+  puedeVenderComo?: (tipo: 'unidad' | 'empaque') => boolean
+  getPrecio?: (tipo: 'unidad' | 'empaque') => number
+  convertirAUnidades?: (cantidad: number, tipo: 'unidad' | 'empaque') => number
+  getInfoStock?: () => any
 }
 
 interface SaleItem {
   producto: string
   nombreProducto: string
   cantidad: number
+  tipoVenta: 'unidad' | 'empaque'
   precioUnitario: number
   precioTotal: number
-  tipoVenta: 'unidad' | 'caja'
-  unidadesPorCaja?: number
 }
 
 interface Cliente {
@@ -44,7 +54,7 @@ interface CartContextType {
   notas: string
   isCartOpen: boolean
   isScanning: boolean
-  addToCart: (product: Product, tipoVenta?: 'unidad' | 'caja', unidadesPorCaja?: number) => void
+  addToCart: (product: Product, tipoVenta?: 'unidad' | 'empaque') => void
   updateCartItem: (productId: string, newQuantity: number) => void
   removeFromCart: (productId: string) => void
   clearCart: () => void
@@ -76,6 +86,35 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isScanning, setIsScanning] = useState(false)
 
   console.log('CartProvider render:', { cartLength: cart.length, isCartOpen });
+
+  // Funciones auxiliares para manejo de productos
+  const puedeVenderComo = (product: Product, tipo: 'unidad' | 'empaque'): boolean => {
+    return product.tipoVenta === tipo || product.tipoVenta === 'ambos';
+  };
+
+  const getPrecioProducto = (product: Product, tipo: 'unidad' | 'empaque'): number => {
+    if (tipo === 'unidad' && product.precioPorUnidad) {
+      return product.precioPorUnidad;
+    }
+    if (tipo === 'empaque' && product.precioPorEmpaque) {
+      return product.precioPorEmpaque;
+    }
+    return product.precio; // Precio por defecto
+  };
+
+  const convertirAUnidades = (product: Product, cantidad: number, tipo: 'unidad' | 'empaque'): number => {
+    if (tipo === 'empaque') {
+      return cantidad * (product.unidadesPorEmpaque || 1);
+    }
+    return cantidad;
+  };
+
+  const calcularStockDisponible = (product: Product, tipo: 'unidad' | 'empaque'): number => {
+    if (tipo === 'empaque') {
+      return Math.floor(product.stock / (product.unidadesPorEmpaque || 1));
+    }
+    return product.stock;
+  };
 
   // Cargar carrito del localStorage al iniciar
   useEffect(() => {
@@ -158,41 +197,51 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('saludDirecta_isCartOpen', isCartOpen.toString())
   }, [isCartOpen])
 
-  const addToCart = (product: Product, tipoVenta: 'unidad' | 'caja' = 'unidad', unidadesPorCaja: number = 1) => {
-    const existingItem = cart.find(item => item.producto === product._id)
+  const addToCart = (product: Product, tipoVenta: 'unidad' | 'empaque' = 'unidad') => {
+    // Verificar que el producto permita este tipo de venta
+    if (!puedeVenderComo(product, tipoVenta)) {
+      toast.error(`Este producto no se puede vender como ${tipoVenta}`)
+      return
+    }
+
+    const existingItem = cart.find(item => item.producto === product._id && item.tipoVenta === tipoVenta)
 
     if (existingItem) {
-      // Si ya existe, incrementar cantidad
-      const newQuantity = tipoVenta === 'caja' ? existingItem.cantidad + 1 : existingItem.cantidad + 1
-      const maxStock = tipoVenta === 'caja' ? Math.floor(product.stock / unidadesPorCaja) : product.stock
+      // Si ya existe con el mismo tipo de venta, incrementar cantidad
+      const newQuantity = existingItem.cantidad + 1
+      const maxStock = calcularStockDisponible(product, tipoVenta)
 
       if (newQuantity > maxStock) {
-        toast.error(`Stock insuficiente. Maximo disponible: ${maxStock} ${tipoVenta === 'caja' ? 'cajas' : 'unidades'}`)
+        const infoStock = product.getInfoStock ? product.getInfoStock() : { cajasCompletas: 0, unidadesSueltas: product.stock };
+        toast.error(`Stock insuficiente. Disponible: ${maxStock} ${tipoVenta === 'empaque' ? 'empaques' : 'unidades'} (${infoStock.cajasCompletas} cajas + ${infoStock.unidadesSueltas} unidades)`)
         return
       }
 
       updateCartItem(existingItem.producto, newQuantity)
     } else {
       // Si no existe, agregar nuevo item
-      const maxStock = tipoVenta === 'caja' ? Math.floor(product.stock / unidadesPorCaja) : product.stock
+      const maxStock = calcularStockDisponible(product, tipoVenta)
 
       if (1 > maxStock) {
-        toast.error(`Stock insuficiente. Maximo disponible: ${maxStock} ${tipoVenta === 'caja' ? 'cajas' : 'unidades'}`)
+        const infoStock = product.getInfoStock ? product.getInfoStock() : { cajasCompletas: 0, unidadesSueltas: product.stock };
+        toast.error(`Stock insuficiente. Disponible: ${maxStock} ${tipoVenta === 'empaque' ? 'empaques' : 'unidades'} (${infoStock.cajasCompletas} cajas + ${infoStock.unidadesSueltas} unidades)`)
         return
       }
+
+      // Usar el precio correcto según el tipo de venta
+      const precioUnitario = getPrecioProducto(product, tipoVenta)
 
       const newItem: SaleItem = {
         producto: product._id,
         nombreProducto: product.nombre,
         cantidad: 1,
-        precioUnitario: product.precio,
-        precioTotal: product.precio,
         tipoVenta,
-        unidadesPorCaja: tipoVenta === 'caja' ? unidadesPorCaja : undefined
+        precioUnitario,
+        precioTotal: precioUnitario
       }
 
       setCart([...cart, newItem])
-      toast.success(`${product.nombre} agregado al carrito`)
+      toast.success(`${product.nombre} agregado al carrito (${tipoVenta})`)
     }
   }
 
@@ -268,7 +317,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         items: cart.map(item => ({
           producto: item.producto,
           nombreProducto: item.nombreProducto,
-          cantidad: item.tipoVenta === 'caja' ? item.cantidad * (item.unidadesPorCaja || 1) : item.cantidad,
+          cantidad: item.cantidad,
+          tipoVenta: item.tipoVenta,
           precioUnitario: item.precioUnitario,
           precioTotal: item.precioTotal
         })),

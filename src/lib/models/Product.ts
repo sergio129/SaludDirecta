@@ -6,7 +6,9 @@ export interface IProduct extends Document {
   descripcion: string;
   precio: number;
   precioCompra: number;
-  stock: number;
+  stock: number; // Total de unidades (calculado automáticamente)
+  stockCajas: number; // Número de cajas completas
+  stockUnidadesSueltas: number; // Unidades sueltas (que no completan una caja)
   stockMinimo: number;
   categoria: string;
   laboratorio: string;
@@ -15,6 +17,11 @@ export interface IProduct extends Document {
   fechaVencimiento?: Date;
   requiereReceta: boolean;
   activo: boolean;
+  // Nuevos campos para manejo de unidades y empaques
+  unidadesPorEmpaque?: number; // Número de unidades por caja/empaque
+  tipoVenta: 'unidad' | 'empaque' | 'ambos'; // Tipo de venta permitida
+  precioPorUnidad?: number; // Precio cuando se vende por unidad
+  precioPorEmpaque?: number; // Precio cuando se vende por caja completa
   fechaCreacion: Date;
   fechaActualizacion: Date;
 }
@@ -45,6 +52,16 @@ const ProductSchema: Schema = new Schema({
     type: Number,
     required: [true, 'El stock es requerido'],
     min: [0, 'El stock debe ser mayor o igual a 0'],
+    default: 0
+  },
+  stockCajas: {
+    type: Number,
+    min: [0, 'El stock de cajas debe ser mayor o igual a 0'],
+    default: 0
+  },
+  stockUnidadesSueltas: {
+    type: Number,
+    min: [0, 'El stock de unidades sueltas debe ser mayor o igual a 0'],
     default: 0
   },
   stockMinimo: {
@@ -83,6 +100,24 @@ const ProductSchema: Schema = new Schema({
   activo: {
     type: Boolean,
     default: true
+  },
+  unidadesPorEmpaque: {
+    type: Number,
+    min: [1, 'Las unidades por empaque deben ser al menos 1'],
+    default: 1
+  },
+  tipoVenta: {
+    type: String,
+    enum: ['unidad', 'empaque', 'ambos'],
+    default: 'unidad'
+  },
+  precioPorUnidad: {
+    type: Number,
+    min: [0, 'El precio por unidad debe ser mayor o igual a 0']
+  },
+  precioPorEmpaque: {
+    type: Number,
+    min: [0, 'El precio por empaque debe ser mayor o igual a 0']
   }
 }, {
   timestamps: {
@@ -103,10 +138,112 @@ ProductSchema.methods.necesitaReabastecimiento = function() {
   return this.stock <= this.stockMinimo;
 };
 
+// Método para calcular el stock total en unidades
+ProductSchema.methods.calcularStockTotal = function() {
+  const unidadesPorCaja = this.unidadesPorEmpaque || 1;
+  return (this.stockCajas * unidadesPorCaja) + this.stockUnidadesSueltas;
+};
+
+// Método para actualizar stock desde cajas y unidades sueltas
+ProductSchema.methods.actualizarStockDesdeCajas = function(cajas: number, unidadesSueltas: number) {
+  this.stockCajas = cajas;
+  this.stockUnidadesSueltas = unidadesSueltas;
+  this.stock = this.calcularStockTotal();
+};
+
+// Método para vender unidades y actualizar cajas/unidades automáticamente
+ProductSchema.methods.venderUnidades = function(cantidad: number) {
+  if (cantidad > this.stock) {
+    throw new Error('Stock insuficiente');
+  }
+
+  const unidadesPorCaja = this.unidadesPorEmpaque || 1;
+  let unidadesRestantes = cantidad;
+
+  // Primero intentar vender de unidades sueltas
+  if (this.stockUnidadesSueltas >= unidadesRestantes) {
+    this.stockUnidadesSueltas -= unidadesRestantes;
+    unidadesRestantes = 0;
+  } else {
+    unidadesRestantes -= this.stockUnidadesSueltas;
+    this.stockUnidadesSueltas = 0;
+  }
+
+  // Si aún quedan unidades por vender, vender cajas completas
+  if (unidadesRestantes > 0) {
+    const cajasNecesarias = Math.ceil(unidadesRestantes / unidadesPorCaja);
+    if (this.stockCajas < cajasNecesarias) {
+      throw new Error('Stock insuficiente para completar la venta');
+    }
+
+    this.stockCajas -= cajasNecesarias;
+    const unidadesDeCajas = cajasNecesarias * unidadesPorCaja;
+    const unidadesSobrantes = unidadesDeCajas - unidadesRestantes;
+
+    // Las unidades sobrantes van a unidades sueltas
+    this.stockUnidadesSueltas += unidadesSobrantes;
+  }
+
+  // Recalcular stock total
+  this.stock = this.calcularStockTotal();
+};
+
+// Método para agregar stock en cajas y unidades
+ProductSchema.methods.agregarStock = function(cajas: number, unidadesSueltas: number) {
+  this.stockCajas += cajas;
+  this.stockUnidadesSueltas += unidadesSueltas;
+  this.stock = this.calcularStockTotal();
+};
+
+// Método para obtener información de stock legible
+ProductSchema.methods.getInfoStock = function() {
+  const unidadesPorCaja = this.unidadesPorEmpaque || 1;
+  return {
+    totalUnidades: this.stock,
+    cajasCompletas: this.stockCajas,
+    unidadesSueltas: this.stockUnidadesSueltas,
+    unidadesPorCaja: unidadesPorCaja,
+    cajasParciales: Math.floor(this.stockUnidadesSueltas / unidadesPorCaja),
+    unidadesEnCajaParcial: this.stockUnidadesSueltas % unidadesPorCaja
+  };
+};
+
 // Método para calcular margen de ganancia
 ProductSchema.methods.calcularMargen = function() {
   if (this.precioCompra === 0) return 0;
   return ((this.precio - this.precioCompra) / this.precioCompra) * 100;
 };
+
+// Método para obtener el precio según el tipo de venta
+ProductSchema.methods.getPrecio = function(tipoVenta: 'unidad' | 'empaque' = 'unidad') {
+  if (tipoVenta === 'unidad' && this.precioPorUnidad) {
+    return this.precioPorUnidad;
+  }
+  if (tipoVenta === 'empaque' && this.precioPorEmpaque) {
+    return this.precioPorEmpaque;
+  }
+  return this.precio; // Precio por defecto
+};
+
+// Método para convertir cantidad a unidades base
+ProductSchema.methods.convertirAUnidades = function(cantidad: number, tipoVenta: 'unidad' | 'empaque') {
+  if (tipoVenta === 'empaque') {
+    return cantidad * (this.unidadesPorEmpaque || 1);
+  }
+  return cantidad;
+};
+
+// Método para verificar si puede venderse del tipo especificado
+ProductSchema.methods.puedeVenderComo = function(tipoVenta: 'unidad' | 'empaque') {
+  return this.tipoVenta === tipoVenta || this.tipoVenta === 'ambos';
+};
+
+// Middleware pre-save para calcular stock total automáticamente
+ProductSchema.pre('save', function(next) {
+  if (this.isModified('stockCajas') || this.isModified('stockUnidadesSueltas') || this.isNew) {
+    this.stock = this.calcularStockTotal();
+  }
+  next();
+});
 
 export default mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);

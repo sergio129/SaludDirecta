@@ -4,6 +4,7 @@ export interface ISaleItem {
   producto: mongoose.Types.ObjectId;
   nombreProducto: string;
   cantidad: number;
+  tipoVenta: 'unidad' | 'empaque'; // Tipo de venta: unidad individual o empaque completo
   precioUnitario: number;
   precioTotal: number;
 }
@@ -44,6 +45,12 @@ const SaleItemSchema: Schema = new Schema({
     type: Number,
     required: true,
     min: [1, 'La cantidad debe ser al menos 1']
+  },
+  tipoVenta: {
+    type: String,
+    enum: ['unidad', 'empaque'],
+    required: true,
+    default: 'unidad'
   },
   precioUnitario: {
     type: Number,
