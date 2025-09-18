@@ -141,14 +141,14 @@ export default function InventoryManagement() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          stockCajas: parseInt(updateForm.stockCajas) || 0,
-          unidadesPorCaja: parseInt(updateForm.unidadesPorCaja) || 1,
-          stockUnidadesSueltas: parseInt(updateForm.stockUnidadesSueltas) || 0,
-          precioCompra: parseFloat(updateForm.precioCompra),
-          precioCompraCaja: parseFloat(updateForm.precioCompraCaja) || 0,
-          precio: parseFloat(updateForm.precio),
-          precioCaja: parseFloat(updateForm.precioCaja) || 0
-        }),
+          stockCajas: (() => { const v = parseInt(updateForm.stockCajas || '0', 10); return Number.isNaN(v) ? 0 : Math.max(0, v) })(),
+          unidadesPorCaja: (() => { const v = parseInt(updateForm.unidadesPorCaja || '1', 10); return Number.isNaN(v) ? 1 : Math.max(1, v) })(),
+          stockUnidadesSueltas: (() => { const v = parseInt(updateForm.stockUnidadesSueltas || '0', 10); return Number.isNaN(v) ? 0 : Math.max(0, v) })(),
+          precioCompra: (() => { const v = parseFloat(updateForm.precioCompra || '0'); return Number.isNaN(v) ? 0 : v })(),
+          precioCompraCaja: (() => { const v = parseFloat(updateForm.precioCompraCaja || '0'); return Number.isNaN(v) ? 0 : v })(),
+          precio: (() => { const v = parseFloat(updateForm.precio || '0'); return Number.isNaN(v) ? 0 : v })(),
+          precioCaja: (() => { const v = parseFloat(updateForm.precioCaja || '0'); return Number.isNaN(v) ? 0 : v })()
+        })
       });
 
       if (response.ok) {
@@ -380,9 +380,17 @@ export default function InventoryManagement() {
                   <div className="flex gap-2">
                     <Input
                       id="update-stockCajas"
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={updateForm.stockCajas}
-                      onChange={(e) => setUpdateForm({ ...updateForm, stockCajas: e.target.value })}
+                      onChange={(e) => {
+                        // Allow only digits, strip non-digits
+                        const digitsOnly = e.target.value.replace(/\D+/g, '')
+                        // Normalize leading zeros
+                        const normalized = digitsOnly.replace(/^0+(\d)/, '$1')
+                        setUpdateForm({ ...updateForm, stockCajas: normalized })
+                      }}
                       placeholder="0"
                       className="text-right"
                     />
@@ -404,9 +412,15 @@ export default function InventoryManagement() {
                   </Label>
                   <Input
                     id="update-unidadesPorCaja"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={updateForm.unidadesPorCaja}
-                    onChange={(e) => setUpdateForm({ ...updateForm, unidadesPorCaja: e.target.value })}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/\D+/g, '')
+                      const normalized = digitsOnly.replace(/^0+(\d)/, '$1')
+                      setUpdateForm({ ...updateForm, unidadesPorCaja: normalized })
+                    }}
                     placeholder="1"
                     className="text-right"
                   />
@@ -416,12 +430,18 @@ export default function InventoryManagement() {
                   <Label htmlFor="update-stockUnidadesSueltas" className="text-sm font-medium text-gray-700">
                     Unidades Sueltas
                   </Label>
-                  <div className="flex gap-2">
+                    <div className="flex gap-2">
                     <Input
                       id="update-stockUnidadesSueltas"
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={updateForm.stockUnidadesSueltas}
-                      onChange={(e) => setUpdateForm({ ...updateForm, stockUnidadesSueltas: e.target.value })}
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/\D+/g, '')
+                        const normalized = digitsOnly.replace(/^0+(\d)/, '$1')
+                        setUpdateForm({ ...updateForm, stockUnidadesSueltas: normalized })
+                      }}
                       placeholder="0"
                       className="text-right"
                     />
