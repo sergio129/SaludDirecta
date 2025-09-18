@@ -100,6 +100,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         { status: 400 }
       );
     }
+    if (error?.name === 'ValidationError') {
+      const messages = Object.values(error.errors || {}).map((e: any) => e.message);
+      return NextResponse.json({ error: messages.join('. ') }, { status: 400 });
+    }
+    if (error?.name === 'CastError') {
+      return NextResponse.json({ error: 'Datos inválidos en la solicitud' }, { status: 400 });
+    }
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

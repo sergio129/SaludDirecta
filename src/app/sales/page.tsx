@@ -15,23 +15,7 @@ import { Invoice } from '@/components/invoice';
 import { toast } from 'sonner';
 import { useCart } from '@/lib/cart-context';
 import { formatCurrency } from '@/lib/currency-utils';
-
-interface Product {
-  _id: string;
-  nombre: string;
-  descripcion: string;
-  precio: number;
-  precioCompra: number;
-  stock: number;
-  stockMinimo: number;
-  categoria: string;
-  laboratorio: string;
-  codigo?: string;
-  codigoBarras?: string;
-  requiereReceta: boolean;
-  activo: boolean;
-  fechaCreacion: string;
-}
+import IProduct from '@/lib/types/product'
 
 interface Sale {
   _id: string;
@@ -88,8 +72,8 @@ export default function SalesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
 
   // Nuevos estados para la funcionalidad de ventas
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<IProduct[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<IProduct[]>([]);
   const [productSearchTerm, setProductSearchTerm] = useState('');
 
   // Estado para el modal de factura
@@ -153,7 +137,7 @@ export default function SalesPage() {
       if (response.ok) {
         const data = await response.json();
         // Solo productos activos con stock disponible
-        const availableProducts = data.filter((product: Product) => product.activo && product.stock > 0);
+  const availableProducts = data.filter((product: IProduct) => product.activo && product.stock > 0);
         setProducts(availableProducts);
       } else {
         toast.error('Error al cargar productos');
@@ -357,7 +341,7 @@ export default function SalesPage() {
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => addToCart(product, 'caja', 10)}
+                              onClick={() => addToCart(product, 'empaque')}
                               className="text-xs bg-blue-600 hover:bg-blue-700"
                             >
                               Caja
@@ -406,8 +390,7 @@ export default function SalesPage() {
                       <div className="flex-1">
                         <p className="font-medium text-sm">{item.nombreProducto}</p>
                         <p className="text-xs text-gray-600">
-                          {item.cantidad} {item.tipoVenta === 'caja' ? `caja${item.cantidad !== 1 ? 's' : ''}` : `unidad${item.cantidad !== 1 ? 'es' : ''}`}
-                          {item.tipoVenta === 'caja' && item.unidadesPorCaja && ` (${item.unidadesPorCaja} und/caja)`}
+                          {item.cantidad} {item.tipoVenta === 'empaque' ? `caja${item.cantidad !== 1 ? 's' : ''}` : `unidad${item.cantidad !== 1 ? 'es' : ''}`}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">

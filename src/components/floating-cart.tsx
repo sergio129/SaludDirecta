@@ -11,22 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/currency-utils';
 import { useCart } from '@/lib/cart-context';
 
-interface Product {
-  _id: string;
-  nombre: string;
-  descripcion: string;
-  precio: number;
-  precioCompra: number;
-  stock: number;
-  stockMinimo: number;
-  categoria: string;
-  laboratorio: string;
-  codigo?: string;
-  codigoBarras?: string;
-  requiereReceta: boolean;
-  activo: boolean;
-  fechaCreacion: string;
-}
+import IProduct from '@/lib/types/product'
 
 export function FloatingCart() {
   const {
@@ -54,7 +39,7 @@ export function FloatingCart() {
 
   const [barcodeInput, setBarcodeInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchResults, setSearchResults] = useState<IProduct[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -84,7 +69,7 @@ export function FloatingCart() {
       const response = await fetch(`/api/products?search=${encodeURIComponent(term)}&limit=10`);
       if (response.ok) {
         const products = await response.json();
-        setSearchResults(products.filter((p: Product) => p.activo && p.stock > 0));
+  setSearchResults(products.filter((p: IProduct) => p.activo && p.stock > 0));
         setShowSearchResults(true);
       } else {
         setSearchResults([]);
@@ -117,7 +102,7 @@ export function FloatingCart() {
     }
   };
 
-  const handleAddProductFromSearch = (product: Product) => {
+  const handleAddProductFromSearch = (product: IProduct) => {
     addToCart(product, 'unidad', 1);
     setSearchTerm('');
     setSearchResults([]);
@@ -344,7 +329,7 @@ export function FloatingCart() {
                             {formatCurrency(item.precioUnitario)} c/u
                           </span>
                           <Badge variant="outline" className="text-xs">
-                            {item.tipoVenta === 'caja' ? `Caja (${item.unidadesPorCaja} und)` : 'Unidad'}
+                            {item.tipoVenta === 'empaque' ? `Caja (${item.unidadesPorEmpaque || 1} und)` : 'Unidad'}
                           </Badge>
                         </div>
                       </div>

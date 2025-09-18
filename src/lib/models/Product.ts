@@ -167,9 +167,11 @@ ProductSchema.methods.necesitaReabastecimiento = function() {
 };
 
 // Método para calcular el stock total en unidades
-ProductSchema.methods.calcularStockTotal = function() {
-  const unidadesPorCaja = this.unidadesPorCaja || this.unidadesPorEmpaque || 1;
-  return (this.stockCajas * unidadesPorCaja) + this.stockUnidadesSueltas;
+ProductSchema.methods.calcularStockTotal = function(this: any) {
+  const unidadesPorCaja = Number(this.unidadesPorCaja || this.unidadesPorEmpaque || 1);
+  const stockCajas = Number(this.stockCajas || 0);
+  const stockUnidadesSueltas = Number(this.stockUnidadesSueltas || 0);
+  return (stockCajas * unidadesPorCaja) + stockUnidadesSueltas;
 };
 
 // Método para actualizar stock desde cajas y unidades sueltas
@@ -267,11 +269,13 @@ ProductSchema.methods.puedeVenderComo = function(tipoVenta: 'unidad' | 'empaque'
 };
 
 // Middleware pre-save para calcular stock total automáticamente
-ProductSchema.pre('save', function(next) {
+ProductSchema.pre('save', function(this: any, next) {
   // Solo recalcular si es un producto nuevo o si se modificaron los campos de stock individual
   if (this.isNew || this.isModified('stockCajas') || this.isModified('stockUnidadesSueltas') || this.isModified('unidadesPorCaja')) {
-    const unidadesPorCaja = this.unidadesPorCaja || this.unidadesPorEmpaque || 1;
-    this.stock = (this.stockCajas * unidadesPorCaja) + this.stockUnidadesSueltas;
+    const unidadesPorCaja = Number(this.unidadesPorCaja || this.unidadesPorEmpaque || 1);
+    const stockCajas = Number(this.stockCajas || 0);
+    const stockUnidadesSueltas = Number(this.stockUnidadesSueltas || 0);
+    this.stock = (stockCajas * unidadesPorCaja) + stockUnidadesSueltas;
   }
   next();
 });
