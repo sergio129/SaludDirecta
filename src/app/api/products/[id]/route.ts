@@ -36,15 +36,39 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const updateData = await request.json();
 
-    // Validar campos requeridos
+    await dbConnect();
+
+    // Obtener el producto actual para permitir actualizaciones parciales
+    const existingProduct = await Product.findById(id);
+    if (!existingProduct) {
+      return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
+    }
+
+    // Si vienen campos de inventario pero no "stock", calcularlo
+    const stockCajas = updateData.stockCajas ?? existingProduct.stockCajas ?? 0;
+    const unidadesPorCaja = updateData.unidadesPorCaja ?? existingProduct.unidadesPorCaja ?? existingProduct.unidadesPorEmpaque ?? 1;
+    const stockUnidadesSueltas = updateData.stockUnidadesSueltas ?? existingProduct.stockUnidadesSueltas ?? 0;
+    if (updateData.stock === undefined && (updateData.stockCajas !== undefined || updateData.unidadesPorCaja !== undefined || updateData.stockUnidadesSueltas !== undefined)) {
+      updateData.stock = (Number(stockCajas) || 0) * (Number(unidadesPorCaja) || 1) + (Number(stockUnidadesSueltas) || 0);
+    }
+
+    // Fusionar para validar requeridos con valores existentes cuando no se envían
+    const mergedForValidation = {
+      ...existingProduct.toObject(),
+      ...updateData,
+    } as any;
+
+    // Validar campos requeridos contra el objeto fusionado (permite updates parciales)
     const requiredFields = ['nombre', 'precio', 'precioCompra', 'stock', 'stockMinimo', 'categoria', 'laboratorio'];
     for (const field of requiredFields) {
-      if (updateData[field] === undefined || updateData[field] === null || updateData[field] === '') {
+      if (
+        mergedForValidation[field] === undefined ||
+        mergedForValidation[field] === null ||
+        mergedForValidation[field] === ''
+      ) {
         return NextResponse.json({ error: `El campo ${field} es requerido` }, { status: 400 });
       }
     }
-
-    await dbConnect();
 
     const updatedProduct = await Product.findByIdAndUpdate(
       id,

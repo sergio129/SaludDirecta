@@ -84,27 +84,63 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { nombre, descripcion, precio, precioCompra, stock, stockMinimo, categoria, laboratorio, requiereReceta, codigo, codigoBarras } = await request.json();
+    const {
+      nombre,
+      descripcion,
+      precio,
+      precioCaja,
+      precioCompra,
+      precioCompraCaja,
+      stockCajas,
+      unidadesPorCaja,
+      stockUnidadesSueltas,
+      stockMinimo,
+      categoria,
+      laboratorio,
+      codigo,
+      codigoBarras,
+      requiereReceta,
+      margenGananciaUnidad,
+      margenGananciaCaja
+    } = await request.json();
 
-    if (!nombre || !precio || !precioCompra || stock === undefined || !stockMinimo || !categoria || !laboratorio) {
+    // Validación de campos requeridos
+    if (!nombre || precio === undefined || precio === null ||
+        precioCompra === undefined || precioCompra === null ||
+        stockCajas === undefined || stockCajas === null ||
+        unidadesPorCaja === undefined || unidadesPorCaja === null ||
+        stockUnidadesSueltas === undefined || stockUnidadesSueltas === null ||
+        stockMinimo === undefined || stockMinimo === null ||
+        !categoria || !laboratorio) {
       return NextResponse.json({ error: 'Todos los campos requeridos deben ser proporcionados' }, { status: 400 });
     }
+
+    // Calcular stock total
+    const stockTotal = (stockCajas * unidadesPorCaja) + stockUnidadesSueltas;
 
     await dbConnect();
 
     const product = new Product({
       nombre,
-      descripcion,
+      descripcion: descripcion || '',
       precio,
+      precioCaja: precioCaja || null,
       precioCompra,
-      stock,
+      precioCompraCaja: precioCompraCaja || null,
+      stockCajas,
+      unidadesPorCaja,
+      stockUnidadesSueltas,
+      stock: stockTotal,
       stockMinimo,
       categoria,
       laboratorio,
+      codigo: codigo || null,
+      codigoBarras: codigoBarras || null,
       requiereReceta: requiereReceta || false,
-      codigo,
-      codigoBarras,
-      activo: true
+      margenGananciaUnidad: margenGananciaUnidad || null,
+      margenGananciaCaja: margenGananciaCaja || null,
+      activo: true,
+      tipoVenta: 'ambos' // Por defecto permite venta por unidad y caja
     });
 
     await product.save();

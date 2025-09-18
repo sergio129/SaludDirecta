@@ -25,6 +25,8 @@ export interface IProduct extends Document {
   tipoVenta: 'unidad' | 'empaque' | 'ambos'; // Tipo de venta permitida
   precioPorUnidad?: number; // Precio cuando se vende por unidad
   precioPorEmpaque?: number; // Precio cuando se vende por caja completa
+  margenGananciaUnidad?: number; // Margen de ganancia por unidad (%)
+  margenGananciaCaja?: number; // Margen de ganancia por caja (%)
   fechaCreacion: Date;
   fechaActualizacion: Date;
 }
@@ -134,6 +136,16 @@ const ProductSchema: Schema = new Schema({
   precioPorEmpaque: {
     type: Number,
     min: [0, 'El precio por empaque debe ser mayor o igual a 0']
+  },
+  margenGananciaUnidad: {
+    type: Number,
+    min: [0, 'El margen de ganancia por unidad debe ser mayor o igual a 0'],
+    max: [1000, 'El margen de ganancia no puede exceder 1000%']
+  },
+  margenGananciaCaja: {
+    type: Number,
+    min: [0, 'El margen de ganancia por caja debe ser mayor o igual a 0'],
+    max: [1000, 'El margen de ganancia no puede exceder 1000%']
   }
 }, {
   timestamps: {
@@ -256,8 +268,10 @@ ProductSchema.methods.puedeVenderComo = function(tipoVenta: 'unidad' | 'empaque'
 
 // Middleware pre-save para calcular stock total automáticamente
 ProductSchema.pre('save', function(next) {
-  if (this.isModified('stockCajas') || this.isModified('stockUnidadesSueltas') || this.isNew) {
-    this.stock = this.calcularStockTotal();
+  // Solo recalcular si es un producto nuevo o si se modificaron los campos de stock individual
+  if (this.isNew || this.isModified('stockCajas') || this.isModified('stockUnidadesSueltas') || this.isModified('unidadesPorCaja')) {
+    const unidadesPorCaja = this.unidadesPorCaja || this.unidadesPorEmpaque || 1;
+    this.stock = (this.stockCajas * unidadesPorCaja) + this.stockUnidadesSueltas;
   }
   next();
 });

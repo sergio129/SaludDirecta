@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, Package, Plus, Edit, TrendingUp } from 'lucide-react';
+import { Search, Package, Plus, Edit, TrendingUp, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Product {
@@ -29,6 +30,8 @@ interface Product {
   codigoBarras?: string;
   requiereReceta: boolean;
   activo: boolean;
+  margenGananciaUnidad?: number;
+  margenGananciaCaja?: number;
   fechaCreacion: string;
 }
 
@@ -45,6 +48,7 @@ interface InventoryUpdateForm {
 }
 
 export default function InventoryManagement() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +84,20 @@ export default function InventoryManagement() {
     try {
       const response = await fetch('/api/products');
       if (response.ok) {
-        const data = await response.json();
+        let data = await response.json();
+
+        // Migrar productos que no tienen los campos nuevos (solución temporal)
+        data = data.map((product: Product) => ({
+          ...product,
+          stockCajas: product.stockCajas ?? 0,
+          unidadesPorCaja: product.unidadesPorCaja ?? 1,
+          stockUnidadesSueltas: product.stockUnidadesSueltas ?? 0,
+          precioCompraCaja: product.precioCompraCaja ?? 0,
+          precioCaja: product.precioCaja ?? 0,
+          margenGananciaUnidad: product.margenGananciaUnidad ?? 0,
+          margenGananciaCaja: product.margenGananciaCaja ?? 0
+        }));
+
         setProducts(data);
       } else {
         toast.error('Error al cargar productos');
@@ -95,15 +112,15 @@ export default function InventoryManagement() {
 
   const openUpdateDialog = (product: Product) => {
     setSelectedProduct(product);
-    const precioCompra = product.precioCompra;
-    const precioCompraCaja = product.precioCompraCaja || 0;
-    const precio = product.precio;
-    const precioCaja = product.precioCaja || 0;
+    const precioCompra = product.precioCompra ?? 0;
+    const precioCompraCaja = product.precioCompraCaja ?? 0;
+    const precio = product.precio ?? 0;
+    const precioCaja = product.precioCaja ?? 0;
 
     setUpdateForm({
-      stockCajas: product.stockCajas.toString(),
-      unidadesPorCaja: product.unidadesPorCaja.toString(),
-      stockUnidadesSueltas: product.stockUnidadesSueltas.toString(),
+      stockCajas: (product.stockCajas ?? 0).toString(),
+      unidadesPorCaja: (product.unidadesPorCaja ?? 1).toString(),
+      stockUnidadesSueltas: (product.stockUnidadesSueltas ?? 0).toString(),
       precioCompra: precioCompra.toString(),
       precioCompraCaja: precioCompraCaja.toString(),
       precio: precio.toString(),
@@ -216,9 +233,30 @@ export default function InventoryManagement() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestión de Inventario</h1>
-        <p className="text-gray-600">Actualiza stock y precios de productos sin modificar su información básica</p>
+      {/* Header con navegación */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/inventory')}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver al Inventario
+          </Button>
+          <h1 className="text-3xl font-bold text-gray-900">Gestión de Inventario</h1>
+          <p className="text-gray-600">Actualiza stock y precios de productos sin modificar su información básica</p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-2"
+          >
+            <Package className="h-4 w-4" />
+            Dashboard
+          </Button>
+        </div>
       </div>
 
       {/* Barra de búsqueda */}
