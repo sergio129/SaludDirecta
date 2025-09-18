@@ -5,7 +5,11 @@ export interface IProduct extends Document {
   nombre: string;
   descripcion: string;
   precio: number;
+  precioUnidad: number;
+  precioCaja: number;
   precioCompra: number;
+  precioCompraUnidad: number;
+  precioCompraCaja: number;
   stock: number; // Total de unidades (calculado automáticamente)
   stockCajas: number; // Número de cajas completas
   stockUnidadesSueltas: number; // Unidades sueltas (que no completan una caja)
@@ -19,6 +23,7 @@ export interface IProduct extends Document {
   activo: boolean;
   // Nuevos campos para manejo de unidades y empaques
   unidadesPorEmpaque?: number; // Número de unidades por caja/empaque
+  unidadesPorCaja?: number; // Alias para unidadesPorEmpaque
   tipoVenta: 'unidad' | 'empaque' | 'ambos'; // Tipo de venta permitida
   precioPorUnidad?: number; // Precio cuando se vende por unidad
   precioPorEmpaque?: number; // Precio cuando se vende por caja completa
@@ -47,6 +52,22 @@ const ProductSchema: Schema = new Schema({
     type: Number,
     required: [true, 'El precio de compra es requerido'],
     min: [0, 'El precio de compra debe ser mayor o igual a 0']
+  },
+  precioCompraUnidad: {
+    type: Number,
+    min: [0, 'El precio de compra por unidad debe ser mayor o igual a 0']
+  },
+  precioCompraCaja: {
+    type: Number,
+    min: [0, 'El precio de compra por caja debe ser mayor o igual a 0']
+  },
+  precioUnidad: {
+    type: Number,
+    min: [0, 'El precio por unidad debe ser mayor o igual a 0']
+  },
+  precioCaja: {
+    type: Number,
+    min: [0, 'El precio por caja debe ser mayor o igual a 0']
   },
   stock: {
     type: Number,
@@ -106,6 +127,11 @@ const ProductSchema: Schema = new Schema({
     min: [1, 'Las unidades por empaque deben ser al menos 1'],
     default: 1
   },
+  unidadesPorCaja: {
+    type: Number,
+    min: [1, 'Las unidades por caja deben ser al menos 1'],
+    default: 1
+  },
   tipoVenta: {
     type: String,
     enum: ['unidad', 'empaque', 'ambos'],
@@ -140,7 +166,7 @@ ProductSchema.methods.necesitaReabastecimiento = function() {
 
 // Método para calcular el stock total en unidades
 ProductSchema.methods.calcularStockTotal = function() {
-  const unidadesPorCaja = this.unidadesPorEmpaque || 1;
+  const unidadesPorCaja = this.unidadesPorCaja || this.unidadesPorEmpaque || 1;
   return (this.stockCajas * unidadesPorCaja) + this.stockUnidadesSueltas;
 };
 
@@ -157,7 +183,7 @@ ProductSchema.methods.venderUnidades = function(cantidad: number) {
     throw new Error('Stock insuficiente');
   }
 
-  const unidadesPorCaja = this.unidadesPorEmpaque || 1;
+  const unidadesPorCaja = this.unidadesPorCaja || this.unidadesPorEmpaque || 1;
   let unidadesRestantes = cantidad;
 
   // Primero intentar vender de unidades sueltas

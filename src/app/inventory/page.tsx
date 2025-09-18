@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle, Tag, Pill, Edit, Trash2, Check, ChevronsUpDown, ShoppingCart } from 'lucide-react';
+import { Package, Plus, Search, ArrowLeft, AlertTriangle, CheckCircle, Tag, Pill, Edit, Trash2, Check, ChevronsUpDown, ShoppingCart, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '@/lib/cart-context';
 
@@ -21,7 +21,11 @@ interface Product {
   nombre: string;
   descripcion: string;
   precio: number;
+  precioUnidad: number;
+  precioCaja: number;
   precioCompra: number;
+  precioCompraUnidad: number;
+  precioCompraCaja: number;
   stockCajas: number;
   unidadesPorCaja: number;
   stockUnidadesSueltas: number;
@@ -57,7 +61,11 @@ export default function InventoryPage() {
     nombre: '',
     descripcion: '',
     precio: '',
+    precioUnidad: '',
+    precioCaja: '',
     precioCompra: '',
+    precioCompraUnidad: '',
+    precioCompraCaja: '',
     stockCajas: '',
     unidadesPorCaja: '',
     stockUnidadesSueltas: '',
@@ -192,7 +200,11 @@ export default function InventoryPage() {
         body: JSON.stringify({
           ...createForm,
           precio: parseFloat(createForm.precio),
+          precioUnidad: parseFloat(createForm.precioUnidad) || 0,
+          precioCaja: parseFloat(createForm.precioCaja) || 0,
           precioCompra: parseFloat(createForm.precioCompra),
+          precioCompraUnidad: parseFloat(createForm.precioCompraUnidad) || 0,
+          precioCompraCaja: parseFloat(createForm.precioCompraCaja) || 0,
           stockCajas: parseInt(createForm.stockCajas) || 0,
           unidadesPorCaja: parseInt(createForm.unidadesPorCaja) || 1,
           stockUnidadesSueltas: parseInt(createForm.stockUnidadesSueltas) || 0,
@@ -233,7 +245,11 @@ export default function InventoryPage() {
       nombre: product.nombre,
       descripcion: product.descripcion,
       precio: product.precio.toString(),
+      precioUnidad: product.precioUnidad?.toString() || '',
+      precioCaja: product.precioCaja?.toString() || '',
       precioCompra: product.precioCompra.toString(),
+      precioCompraUnidad: product.precioCompraUnidad?.toString() || '',
+      precioCompraCaja: product.precioCompraCaja?.toString() || '',
       stockCajas: product.stockCajas.toString(),
       unidadesPorCaja: product.unidadesPorCaja.toString(),
       stockUnidadesSueltas: product.stockUnidadesSueltas.toString(),
@@ -258,7 +274,11 @@ export default function InventoryPage() {
       nombre: '',
       descripcion: '',
       precio: '',
+      precioUnidad: '',
+      precioCaja: '',
       precioCompra: '',
+      precioCompraUnidad: '',
+      precioCompraCaja: '',
       stockCajas: '',
       unidadesPorCaja: '',
       stockUnidadesSueltas: '',
@@ -293,7 +313,11 @@ export default function InventoryPage() {
         body: JSON.stringify({
           ...createForm,
           precio: parseFloat(createForm.precio),
+          precioUnidad: parseFloat(createForm.precioUnidad) || 0,
+          precioCaja: parseFloat(createForm.precioCaja) || 0,
           precioCompra: parseFloat(createForm.precioCompra),
+          precioCompraUnidad: parseFloat(createForm.precioCompraUnidad) || 0,
+          precioCompraCaja: parseFloat(createForm.precioCompraCaja) || 0,
           stockCajas: parseInt(createForm.stockCajas) || 0,
           unidadesPorCaja: parseInt(createForm.unidadesPorCaja) || 1,
           stockUnidadesSueltas: parseInt(createForm.stockUnidadesSueltas) || 0,
@@ -408,6 +432,14 @@ export default function InventoryPage() {
                 <Tag className="h-4 w-4" />
                 Categorías
               </Button>
+              <Button
+                onClick={() => router.push('/inventory/management')}
+                variant="outline"
+                className="flex items-center gap-2 border-green-300 text-green-700 hover:border-green-400 hover:bg-green-50 transition-all duration-200 shadow-sm"
+              >
+                <TrendingUp className="h-4 w-4" />
+                Gestión de Inventario
+              </Button>
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -493,34 +525,102 @@ export default function InventoryPage() {
                   {/* Sección de Precios */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Precios</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="precioCompra" className="text-sm font-medium text-gray-700">
-                          Precio de Compra *
-                        </Label>
-                        <Input
-                          id="precioCompra"
-                          type="number"
-                          step="0.01"
-                          value={createForm.precioCompra}
-                          onChange={(e) => setCreateForm({ ...createForm, precioCompra: e.target.value })}
-                          placeholder="0.00"
-                          className="text-right"
-                        />
+
+                    {/* Precios de Compra */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-gray-700">Precios de Compra</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="precioCompra" className="text-sm font-medium text-gray-700">
+                            Por Unidad *
+                          </Label>
+                          <Input
+                            id="precioCompra"
+                            type="number"
+                            step="0.01"
+                            value={createForm.precioCompra}
+                            onChange={(e) => setCreateForm({ ...createForm, precioCompra: e.target.value })}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="precioCompraCaja" className="text-sm font-medium text-gray-700">
+                            Por Caja
+                          </Label>
+                          <Input
+                            id="precioCompraCaja"
+                            type="number"
+                            step="0.01"
+                            value={createForm.precioCompraCaja}
+                            onChange={(e) => setCreateForm({ ...createForm, precioCompraCaja: e.target.value })}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="precioCompraUnidad" className="text-sm font-medium text-gray-700">
+                            Unidad en Caja
+                          </Label>
+                          <Input
+                            id="precioCompraUnidad"
+                            type="number"
+                            step="0.01"
+                            value={createForm.precioCompraUnidad}
+                            onChange={(e) => setCreateForm({ ...createForm, precioCompraUnidad: e.target.value })}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="precio" className="text-sm font-medium text-gray-700">
-                          Precio de Venta *
-                        </Label>
-                        <Input
-                          id="precio"
-                          type="number"
-                          step="0.01"
-                          value={createForm.precio}
-                          onChange={(e) => setCreateForm({ ...createForm, precio: e.target.value })}
-                          placeholder="0.00"
-                          className="text-right"
-                        />
+                    </div>
+
+                    {/* Precios de Venta */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-gray-700">Precios de Venta</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="precio" className="text-sm font-medium text-gray-700">
+                            Por Unidad *
+                          </Label>
+                          <Input
+                            id="precio"
+                            type="number"
+                            step="0.01"
+                            value={createForm.precio}
+                            onChange={(e) => setCreateForm({ ...createForm, precio: e.target.value })}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="precioCaja" className="text-sm font-medium text-gray-700">
+                            Por Caja
+                          </Label>
+                          <Input
+                            id="precioCaja"
+                            type="number"
+                            step="0.01"
+                            value={createForm.precioCaja}
+                            onChange={(e) => setCreateForm({ ...createForm, precioCaja: e.target.value })}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="precioUnidad" className="text-sm font-medium text-gray-700">
+                            Unidad en Caja
+                          </Label>
+                          <Input
+                            id="precioUnidad"
+                            type="number"
+                            step="0.01"
+                            value={createForm.precioUnidad}
+                            onChange={(e) => setCreateForm({ ...createForm, precioUnidad: e.target.value })}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -578,9 +678,14 @@ export default function InventoryPage() {
                       </Label>
                       <Input
                         id="stockMinimo"
-                        type="number"
+                        type="text"
                         value={createForm.stockMinimo}
-                        onChange={(e) => setCreateForm({ ...createForm, stockMinimo: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (/^\d*$/.test(value)) { // Solo números
+                            setCreateForm({ ...createForm, stockMinimo: value });
+                          }
+                        }}
                         placeholder="0"
                         className="text-right"
                       />
@@ -798,34 +903,102 @@ export default function InventoryPage() {
               {/* Sección de Precios */}
               <div className="space-y-4">
                 <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Precios</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-precioCompra" className="text-sm font-medium text-gray-700">
-                      Precio de Compra *
-                    </Label>
-                    <Input
-                      id="edit-precioCompra"
-                      type="number"
-                      step="0.01"
-                      value={createForm.precioCompra}
-                      onChange={(e) => setCreateForm({ ...createForm, precioCompra: e.target.value })}
-                      placeholder="0.00"
-                      className="text-right"
-                    />
+
+                {/* Precios de Compra */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-700">Precios de Compra</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-precioCompra" className="text-sm font-medium text-gray-700">
+                        Por Unidad *
+                      </Label>
+                      <Input
+                        id="edit-precioCompra"
+                        type="number"
+                        step="0.01"
+                        value={createForm.precioCompra}
+                        onChange={(e) => setCreateForm({ ...createForm, precioCompra: e.target.value })}
+                        placeholder="0.00"
+                        className="text-right"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-precioCompraCaja" className="text-sm font-medium text-gray-700">
+                        Por Caja
+                      </Label>
+                      <Input
+                        id="edit-precioCompraCaja"
+                        type="number"
+                        step="0.01"
+                        value={createForm.precioCompraCaja}
+                        onChange={(e) => setCreateForm({ ...createForm, precioCompraCaja: e.target.value })}
+                        placeholder="0.00"
+                        className="text-right"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-precioCompraUnidad" className="text-sm font-medium text-gray-700">
+                        Unidad en Caja
+                      </Label>
+                      <Input
+                        id="edit-precioCompraUnidad"
+                        type="number"
+                        step="0.01"
+                        value={createForm.precioCompraUnidad}
+                        onChange={(e) => setCreateForm({ ...createForm, precioCompraUnidad: e.target.value })}
+                        placeholder="0.00"
+                        className="text-right"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-precio" className="text-sm font-medium text-gray-700">
-                      Precio de Venta *
-                    </Label>
-                    <Input
-                      id="edit-precio"
-                      type="number"
-                      step="0.01"
-                      value={createForm.precio}
-                      onChange={(e) => setCreateForm({ ...createForm, precio: e.target.value })}
-                      placeholder="0.00"
-                      className="text-right"
-                    />
+                </div>
+
+                {/* Precios de Venta */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-700">Precios de Venta</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-precio" className="text-sm font-medium text-gray-700">
+                        Por Unidad *
+                      </Label>
+                      <Input
+                        id="edit-precio"
+                        type="number"
+                        step="0.01"
+                        value={createForm.precio}
+                        onChange={(e) => setCreateForm({ ...createForm, precio: e.target.value })}
+                        placeholder="0.00"
+                        className="text-right"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-precioCaja" className="text-sm font-medium text-gray-700">
+                        Por Caja
+                      </Label>
+                      <Input
+                        id="edit-precioCaja"
+                        type="number"
+                        step="0.01"
+                        value={createForm.precioCaja}
+                        onChange={(e) => setCreateForm({ ...createForm, precioCaja: e.target.value })}
+                        placeholder="0.00"
+                        className="text-right"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-precioUnidad" className="text-sm font-medium text-gray-700">
+                        Unidad en Caja
+                      </Label>
+                      <Input
+                        id="edit-precioUnidad"
+                        type="number"
+                        step="0.01"
+                        value={createForm.precioUnidad}
+                        onChange={(e) => setCreateForm({ ...createForm, precioUnidad: e.target.value })}
+                        placeholder="0.00"
+                        className="text-right"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -883,9 +1056,14 @@ export default function InventoryPage() {
                   </Label>
                   <Input
                     id="edit-stockMinimo"
-                    type="number"
+                    type="text"
                     value={createForm.stockMinimo}
-                    onChange={(e) => setCreateForm({ ...createForm, stockMinimo: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^\d*$/.test(value)) { // Solo números
+                        setCreateForm({ ...createForm, stockMinimo: value });
+                      }
+                    }}
                     placeholder="0"
                     className="text-right"
                   />
