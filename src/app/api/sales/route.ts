@@ -2,29 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/mongodb';
 import Sale from '@/lib/models/Sale';
-import mongoose from 'mongoose';
-
-const authOptions = {
-  providers: [],
-  pages: {
-    signIn: '/login',
-  },
-  callbacks: {
-    async jwt({ token, user }: any) {
-      if (user) {
-        token.role = user.role;
-      }
-      return token;
-    },
-    async session({ session, token }: any) {
-      if (token) {
-        session.user.id = token.sub;
-        session.user.role = token.role;
-      }
-      return session;
-    },
-  },
-};
+import Product from '@/lib/models/Product';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,7 +49,7 @@ export async function POST(request: NextRequest) {
     // Verificar stock disponible y calcular totales
     let subtotal = 0;
     for (const item of items) {
-      const product = await mongoose.model('Product').findById(item.producto);
+      const product = await Product.findById(item.producto);
       if (!product) {
         return NextResponse.json({ error: `Producto ${item.nombreProducto} no encontrado` }, { status: 400 });
       }
@@ -104,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     // Actualizar stock de productos
     for (const item of items) {
-      await mongoose.model('Product').findByIdAndUpdate(
+      await Product.findByIdAndUpdate(
         item.producto,
         { $inc: { stock: -item.cantidad } }
       );
