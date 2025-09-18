@@ -134,8 +134,8 @@ export async function POST(request: NextRequest) {
       stockMinimo,
       categoria,
       laboratorio,
-      codigo: codigo || null,
-      codigoBarras: codigoBarras || null,
+      codigo: codigo ? (codigo.trim() === '' ? null : codigo) : null,
+      codigoBarras: codigoBarras ? (codigoBarras.trim() === '' ? null : codigoBarras) : null,
       requiereReceta: requiereReceta || false,
       margenGananciaUnidad: margenGananciaUnidad || null,
       margenGananciaCaja: margenGananciaCaja || null,
@@ -147,8 +147,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(product, { status: 201 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creando producto:', error);
+    if (error && (error.code === 11000 || error.name === 'MongoServerError')) {
+      const dupKey = error.keyPattern ? Object.keys(error.keyPattern)[0] : 'valor';
+      const fieldName = dupKey === 'codigoBarras' ? 'código de barras' : dupKey === 'codigo' ? 'código interno' : dupKey;
+      return NextResponse.json(
+        { error: `Ya existe un producto con este ${fieldName}` },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

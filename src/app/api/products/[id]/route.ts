@@ -70,6 +70,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
+    // Normalizar campos opcionales: strings vacíos -> null para respetar índices sparse
+    if (updateData.codigo === '') updateData.codigo = null;
+    if (updateData.codigoBarras === '') updateData.codigoBarras = null;
+
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
       {
@@ -85,8 +89,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     return NextResponse.json(updatedProduct);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error actualizando producto:', error);
+    // Manejo de clave duplicada (código o código de barras)
+    if (error && (error.code === 11000 || error.name === 'MongoServerError')) {
+      const dupKey = error.keyPattern ? Object.keys(error.keyPattern)[0] : 'valor';
+      const fieldName = dupKey === 'codigoBarras' ? 'código de barras' : dupKey === 'codigo' ? 'código interno' : dupKey;
+      return NextResponse.json(
+        { error: `Ya existe un producto con este ${fieldName}` },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
