@@ -15,10 +15,8 @@ interface Product {
   nombre: string;
   descripcion: string;
   precio: number;
-  precioUnidad: number;
   precioCaja: number;
   precioCompra: number;
-  precioCompraUnidad: number;
   precioCompraCaja: number;
   stockCajas: number;
   unidadesPorCaja: number;
@@ -39,11 +37,11 @@ interface InventoryUpdateForm {
   unidadesPorCaja: string;
   stockUnidadesSueltas: string;
   precioCompra: string;
-  precioCompraUnidad: string;
   precioCompraCaja: string;
   precio: string;
-  precioUnidad: string;
   precioCaja: string;
+  margenGananciaUnidad: string;
+  margenGananciaCaja: string;
 }
 
 export default function InventoryManagement() {
@@ -58,11 +56,11 @@ export default function InventoryManagement() {
     unidadesPorCaja: '',
     stockUnidadesSueltas: '',
     precioCompra: '',
-    precioCompraUnidad: '',
     precioCompraCaja: '',
     precio: '',
-    precioUnidad: '',
-    precioCaja: ''
+    precioCaja: '',
+    margenGananciaUnidad: '',
+    margenGananciaCaja: ''
   });
 
   useEffect(() => {
@@ -97,16 +95,21 @@ export default function InventoryManagement() {
 
   const openUpdateDialog = (product: Product) => {
     setSelectedProduct(product);
+    const precioCompra = product.precioCompra;
+    const precioCompraCaja = product.precioCompraCaja || 0;
+    const precio = product.precio;
+    const precioCaja = product.precioCaja || 0;
+
     setUpdateForm({
       stockCajas: product.stockCajas.toString(),
       unidadesPorCaja: product.unidadesPorCaja.toString(),
       stockUnidadesSueltas: product.stockUnidadesSueltas.toString(),
-      precioCompra: product.precioCompra.toString(),
-      precioCompraUnidad: (product.precioCompraUnidad || 0).toString(),
-      precioCompraCaja: (product.precioCompraCaja || 0).toString(),
-      precio: product.precio.toString(),
-      precioUnidad: (product.precioUnidad || 0).toString(),
-      precioCaja: (product.precioCaja || 0).toString()
+      precioCompra: precioCompra.toString(),
+      precioCompraCaja: precioCompraCaja.toString(),
+      precio: precio.toString(),
+      precioCaja: precioCaja.toString(),
+      margenGananciaUnidad: precioCompra > 0 ? (((precio - precioCompra) / precioCompra) * 100).toFixed(2) : '0',
+      margenGananciaCaja: precioCompraCaja > 0 ? (((precioCaja - precioCompraCaja) / precioCompraCaja) * 100).toFixed(2) : '0'
     });
     setIsUpdateDialogOpen(true);
   };
@@ -125,10 +128,8 @@ export default function InventoryManagement() {
           unidadesPorCaja: parseInt(updateForm.unidadesPorCaja) || 1,
           stockUnidadesSueltas: parseInt(updateForm.stockUnidadesSueltas) || 0,
           precioCompra: parseFloat(updateForm.precioCompra),
-          precioCompraUnidad: parseFloat(updateForm.precioCompraUnidad) || 0,
           precioCompraCaja: parseFloat(updateForm.precioCompraCaja) || 0,
           precio: parseFloat(updateForm.precio),
-          precioUnidad: parseFloat(updateForm.precioUnidad) || 0,
           precioCaja: parseFloat(updateForm.precioCaja) || 0
         }),
       });
@@ -165,6 +166,43 @@ export default function InventoryManagement() {
         ...updateForm,
         stockUnidadesSueltas: (currentUnidades + amount).toString()
       });
+    }
+  };
+
+  const calculatePriceFromMargin = (costPrice: number, margin: number) => {
+    return costPrice * (1 + margin / 100);
+  };
+
+  const calculateMarginFromPrice = (costPrice: number, sellingPrice: number) => {
+    if (costPrice === 0) return 0;
+    return ((sellingPrice - costPrice) / costPrice) * 100;
+  };
+
+  const updatePriceFromMargin = (type: 'unidad' | 'caja') => {
+    const margin = parseFloat(type === 'unidad' ? updateForm.margenGananciaUnidad : updateForm.margenGananciaCaja) || 0;
+    const costPrice = parseFloat(type === 'unidad' ? updateForm.precioCompra : updateForm.precioCompraCaja) || 0;
+
+    if (costPrice > 0) {
+      const newPrice = calculatePriceFromMargin(costPrice, margin);
+      if (type === 'unidad') {
+        setUpdateForm({ ...updateForm, precio: newPrice.toFixed(2) });
+      } else {
+        setUpdateForm({ ...updateForm, precioCaja: newPrice.toFixed(2) });
+      }
+    }
+  };
+
+  const updateMarginFromPrice = (type: 'unidad' | 'caja') => {
+    const sellingPrice = parseFloat(type === 'unidad' ? updateForm.precio : updateForm.precioCaja) || 0;
+    const costPrice = parseFloat(type === 'unidad' ? updateForm.precioCompra : updateForm.precioCompraCaja) || 0;
+
+    if (costPrice > 0) {
+      const newMargin = calculateMarginFromPrice(costPrice, sellingPrice);
+      if (type === 'unidad') {
+        setUpdateForm({ ...updateForm, margenGananciaUnidad: newMargin.toFixed(2) });
+      } else {
+        setUpdateForm({ ...updateForm, margenGananciaCaja: newMargin.toFixed(2) });
+      }
     }
   };
 
@@ -292,14 +330,14 @@ export default function InventoryManagement() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Sección de Stock */}
+            {/* Sección de Control de Inventario */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Control de Stock</h3>
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Control de Inventario</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="update-stockCajas" className="text-sm font-medium text-gray-700">
-                    Cajas
+                    Cajas Completas
                   </Label>
                   <div className="flex gap-2">
                     <Input
@@ -369,100 +407,140 @@ export default function InventoryManagement() {
               </div>
             </div>
 
-            {/* Sección de Precios de Compra */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Precios de Compra</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="update-precioCompra" className="text-sm font-medium text-gray-700">
-                    Por Unidad *
-                  </Label>
-                  <Input
-                    id="update-precioCompra"
-                    type="number"
-                    step="0.01"
-                    value={updateForm.precioCompra}
-                    onChange={(e) => setUpdateForm({ ...updateForm, precioCompra: e.target.value })}
-                    placeholder="0.00"
-                    className="text-right"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="update-precioCompraCaja" className="text-sm font-medium text-gray-700">
-                    Por Caja
-                  </Label>
-                  <Input
-                    id="update-precioCompraCaja"
-                    type="number"
-                    step="0.01"
-                    value={updateForm.precioCompraCaja}
-                    onChange={(e) => setUpdateForm({ ...updateForm, precioCompraCaja: e.target.value })}
-                    placeholder="0.00"
-                    className="text-right"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="update-precioCompraUnidad" className="text-sm font-medium text-gray-700">
-                    Unidad en Caja
-                  </Label>
-                  <Input
-                    id="update-precioCompraUnidad"
-                    type="number"
-                    step="0.01"
-                    value={updateForm.precioCompraUnidad}
-                    onChange={(e) => setUpdateForm({ ...updateForm, precioCompraUnidad: e.target.value })}
-                    placeholder="0.00"
-                    className="text-right"
-                  />
+            {/* Sección de Precios y Ganancias */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Precios y Márgenes de Ganancia</h3>
+
+              {/* Precios de Compra */}
+              <div className="space-y-4">
+                <h4 className="text-md font-medium text-gray-700">Precios de Compra</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="update-precioCompraCaja" className="text-sm font-medium text-gray-700">
+                      Por Caja Completa
+                    </Label>
+                    <Input
+                      id="update-precioCompraCaja"
+                      type="text"
+                      value={updateForm.precioCompraCaja}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*\.?\d*$/.test(value)) {
+                          setUpdateForm({ ...updateForm, precioCompraCaja: value });
+                        }
+                      }}
+                      placeholder="0.00"
+                      className="text-right"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="update-precioCompra" className="text-sm font-medium text-gray-700">
+                      Por Unidad
+                    </Label>
+                    <Input
+                      id="update-precioCompra"
+                      type="text"
+                      value={updateForm.precioCompra}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*\.?\d*$/.test(value)) {
+                          setUpdateForm({ ...updateForm, precioCompra: value });
+                        }
+                      }}
+                      placeholder="0.00"
+                      className="text-right"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Sección de Precios de Venta */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Precios de Venta</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="update-precio" className="text-sm font-medium text-gray-700">
-                    Por Unidad *
-                  </Label>
-                  <Input
-                    id="update-precio"
-                    type="number"
-                    step="0.01"
-                    value={updateForm.precio}
-                    onChange={(e) => setUpdateForm({ ...updateForm, precio: e.target.value })}
-                    placeholder="0.00"
-                    className="text-right"
-                  />
+              {/* Márgenes de Ganancia */}
+              <div className="space-y-4">
+                <h4 className="text-md font-medium text-gray-700">Porcentaje de Ganancia (%)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="update-margenGananciaCaja" className="text-sm font-medium text-gray-700">
+                      Para Cajas Completas
+                    </Label>
+                    <Input
+                      id="update-margenGananciaCaja"
+                      type="text"
+                      value={updateForm.margenGananciaCaja}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*\.?\d*$/.test(value)) {
+                          setUpdateForm({ ...updateForm, margenGananciaCaja: value });
+                        }
+                      }}
+                      onBlur={() => updatePriceFromMargin('caja')}
+                      placeholder="0.00"
+                      className="text-right"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="update-margenGananciaUnidad" className="text-sm font-medium text-gray-700">
+                      Para Unidades
+                    </Label>
+                    <Input
+                      id="update-margenGananciaUnidad"
+                      type="text"
+                      value={updateForm.margenGananciaUnidad}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*\.?\d*$/.test(value)) {
+                          setUpdateForm({ ...updateForm, margenGananciaUnidad: value });
+                        }
+                      }}
+                      onBlur={() => updatePriceFromMargin('unidad')}
+                      placeholder="0.00"
+                      className="text-right"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="update-precioCaja" className="text-sm font-medium text-gray-700">
-                    Por Caja
-                  </Label>
-                  <Input
-                    id="update-precioCaja"
-                    type="number"
-                    step="0.01"
-                    value={updateForm.precioCaja}
-                    onChange={(e) => setUpdateForm({ ...updateForm, precioCaja: e.target.value })}
-                    placeholder="0.00"
-                    className="text-right"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="update-precioUnidad" className="text-sm font-medium text-gray-700">
-                    Unidad en Caja
-                  </Label>
-                  <Input
-                    id="update-precioUnidad"
-                    type="number"
-                    step="0.01"
-                    value={updateForm.precioUnidad}
-                    onChange={(e) => setUpdateForm({ ...updateForm, precioUnidad: e.target.value })}
-                    placeholder="0.00"
-                    className="text-right"
-                  />
+              </div>
+
+              {/* Precios de Venta */}
+              <div className="space-y-4">
+                <h4 className="text-md font-medium text-gray-700">Precios de Venta</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="update-precioCaja" className="text-sm font-medium text-gray-700">
+                      Por Caja Completa
+                    </Label>
+                    <Input
+                      id="update-precioCaja"
+                      type="text"
+                      value={updateForm.precioCaja}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*\.?\d*$/.test(value)) {
+                          setUpdateForm({ ...updateForm, precioCaja: value });
+                          updateMarginFromPrice('caja');
+                        }
+                      }}
+                      placeholder="0.00"
+                      className="text-right"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="update-precio" className="text-sm font-medium text-gray-700">
+                      Por Unidad
+                    </Label>
+                    <Input
+                      id="update-precio"
+                      type="text"
+                      value={updateForm.precio}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*\.?\d*$/.test(value)) {
+                          setUpdateForm({ ...updateForm, precio: value });
+                          updateMarginFromPrice('unidad');
+                        }
+                      }}
+                      placeholder="0.00"
+                      className="text-right"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

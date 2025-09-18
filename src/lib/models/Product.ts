@@ -5,10 +5,8 @@ export interface IProduct extends Document {
   nombre: string;
   descripcion: string;
   precio: number;
-  precioUnidad: number;
   precioCaja: number;
   precioCompra: number;
-  precioCompraUnidad: number;
   precioCompraCaja: number;
   stock: number; // Total de unidades (calculado automáticamente)
   stockCajas: number; // Número de cajas completas
@@ -53,17 +51,9 @@ const ProductSchema: Schema = new Schema({
     required: [true, 'El precio de compra es requerido'],
     min: [0, 'El precio de compra debe ser mayor o igual a 0']
   },
-  precioCompraUnidad: {
-    type: Number,
-    min: [0, 'El precio de compra por unidad debe ser mayor o igual a 0']
-  },
   precioCompraCaja: {
     type: Number,
     min: [0, 'El precio de compra por caja debe ser mayor o igual a 0']
-  },
-  precioUnidad: {
-    type: Number,
-    min: [0, 'El precio por unidad debe ser mayor o igual a 0']
   },
   precioCaja: {
     type: Number,

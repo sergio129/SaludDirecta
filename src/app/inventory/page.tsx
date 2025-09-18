@@ -21,10 +21,8 @@ interface Product {
   nombre: string;
   descripcion: string;
   precio: number;
-  precioUnidad: number;
   precioCaja: number;
   precioCompra: number;
-  precioCompraUnidad: number;
   precioCompraCaja: number;
   stockCajas: number;
   unidadesPorCaja: number;
@@ -37,6 +35,7 @@ interface Product {
   codigoBarras?: string;
   requiereReceta: boolean;
   activo: boolean;
+  tipoVenta: 'unidad' | 'empaque' | 'ambos';
   fechaCreacion: string;
 }
 
@@ -61,11 +60,11 @@ export default function InventoryPage() {
     nombre: '',
     descripcion: '',
     precio: '',
-    precioUnidad: '',
     precioCaja: '',
     precioCompra: '',
-    precioCompraUnidad: '',
     precioCompraCaja: '',
+    margenGananciaUnidad: '',
+    margenGananciaCaja: '',
     stockCajas: '',
     unidadesPorCaja: '',
     stockUnidadesSueltas: '',
@@ -159,6 +158,43 @@ export default function InventoryPage() {
 
   const categoryOptions = availableCategories.map(cat => cat.nombre);
 
+  const calculatePriceFromMargin = (costPrice: number, margin: number) => {
+    return costPrice * (1 + margin / 100);
+  };
+
+  const calculateMarginFromPrice = (costPrice: number, sellingPrice: number) => {
+    if (costPrice === 0) return 0;
+    return ((sellingPrice - costPrice) / costPrice) * 100;
+  };
+
+  const updatePriceFromMargin = (type: 'unidad' | 'caja') => {
+    const margin = parseFloat(type === 'unidad' ? createForm.margenGananciaUnidad : createForm.margenGananciaCaja) || 0;
+    const costPrice = parseFloat(type === 'unidad' ? createForm.precioCompra : createForm.precioCompraCaja) || 0;
+
+    if (costPrice > 0) {
+      const newPrice = calculatePriceFromMargin(costPrice, margin);
+      if (type === 'unidad') {
+        setCreateForm({ ...createForm, precio: newPrice.toFixed(2) });
+      } else {
+        setCreateForm({ ...createForm, precioCaja: newPrice.toFixed(2) });
+      }
+    }
+  };
+
+  const updateMarginFromPrice = (type: 'unidad' | 'caja') => {
+    const sellingPrice = parseFloat(type === 'unidad' ? createForm.precio : createForm.precioCaja) || 0;
+    const costPrice = parseFloat(type === 'unidad' ? createForm.precioCompra : createForm.precioCompraCaja) || 0;
+
+    if (costPrice > 0) {
+      const newMargin = calculateMarginFromPrice(costPrice, sellingPrice);
+      if (type === 'unidad') {
+        setCreateForm({ ...createForm, margenGananciaUnidad: newMargin.toFixed(2) });
+      } else {
+        setCreateForm({ ...createForm, margenGananciaCaja: newMargin.toFixed(2) });
+      }
+    }
+  };
+
   const filterProducts = useCallback(() => {
     let filtered = products;
 
@@ -198,17 +234,21 @@ export default function InventoryPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...createForm,
+          nombre: createForm.nombre,
+          descripcion: createForm.descripcion,
           precio: parseFloat(createForm.precio),
-          precioUnidad: parseFloat(createForm.precioUnidad) || 0,
           precioCaja: parseFloat(createForm.precioCaja) || 0,
           precioCompra: parseFloat(createForm.precioCompra),
-          precioCompraUnidad: parseFloat(createForm.precioCompraUnidad) || 0,
           precioCompraCaja: parseFloat(createForm.precioCompraCaja) || 0,
           stockCajas: parseInt(createForm.stockCajas) || 0,
           unidadesPorCaja: parseInt(createForm.unidadesPorCaja) || 1,
           stockUnidadesSueltas: parseInt(createForm.stockUnidadesSueltas) || 0,
-          stockMinimo: parseInt(createForm.stockMinimo)
+          stockMinimo: parseInt(createForm.stockMinimo),
+          categoria: createForm.categoria,
+          laboratorio: createForm.laboratorio,
+          codigo: createForm.codigo,
+          codigoBarras: createForm.codigoBarras,
+          requiereReceta: createForm.requiereReceta
         }),
       });
 
@@ -219,8 +259,14 @@ export default function InventoryPage() {
           nombre: '',
           descripcion: '',
           precio: '',
+          precioCaja: '',
           precioCompra: '',
-          stock: '',
+          precioCompraCaja: '',
+          margenGananciaUnidad: '',
+          margenGananciaCaja: '',
+          stockCajas: '',
+          unidadesPorCaja: '',
+          stockUnidadesSueltas: '',
           stockMinimo: '',
           categoria: '',
           laboratorio: '',
@@ -245,11 +291,11 @@ export default function InventoryPage() {
       nombre: product.nombre,
       descripcion: product.descripcion,
       precio: product.precio.toString(),
-      precioUnidad: product.precioUnidad?.toString() || '',
       precioCaja: product.precioCaja?.toString() || '',
       precioCompra: product.precioCompra.toString(),
-      precioCompraUnidad: product.precioCompraUnidad?.toString() || '',
       precioCompraCaja: product.precioCompraCaja?.toString() || '',
+      margenGananciaUnidad: product.precio > 0 ? (((product.precio - product.precioCompra) / product.precioCompra) * 100).toFixed(2) : '0',
+      margenGananciaCaja: product.precioCaja && product.precioCaja > 0 ? (((product.precioCaja - (product.precioCompraCaja || 0)) / (product.precioCompraCaja || 1)) * 100).toFixed(2) : '0',
       stockCajas: product.stockCajas.toString(),
       unidadesPorCaja: product.unidadesPorCaja.toString(),
       stockUnidadesSueltas: product.stockUnidadesSueltas.toString(),
@@ -274,11 +320,11 @@ export default function InventoryPage() {
       nombre: '',
       descripcion: '',
       precio: '',
-      precioUnidad: '',
       precioCaja: '',
       precioCompra: '',
-      precioCompraUnidad: '',
       precioCompraCaja: '',
+      margenGananciaUnidad: '',
+      margenGananciaCaja: '',
       stockCajas: '',
       unidadesPorCaja: '',
       stockUnidadesSueltas: '',
@@ -297,8 +343,8 @@ export default function InventoryPage() {
       return;
     }
 
-    // Por defecto agregar como unidad, pero se puede cambiar desde el carrito
-    addToCart(product, 'unidad', 1);
+    // Por defecto agregar como unidad
+    addToCart(product, 'unidad');
   };
 
   const updateProduct = async () => {
@@ -313,10 +359,8 @@ export default function InventoryPage() {
         body: JSON.stringify({
           ...createForm,
           precio: parseFloat(createForm.precio),
-          precioUnidad: parseFloat(createForm.precioUnidad) || 0,
           precioCaja: parseFloat(createForm.precioCaja) || 0,
           precioCompra: parseFloat(createForm.precioCompra),
-          precioCompraUnidad: parseFloat(createForm.precioCompraUnidad) || 0,
           precioCompraCaja: parseFloat(createForm.precioCompraCaja) || 0,
           stockCajas: parseInt(createForm.stockCajas) || 0,
           unidadesPorCaja: parseInt(createForm.unidadesPorCaja) || 1,
@@ -522,116 +566,13 @@ export default function InventoryPage() {
                     </div>
                   </div>
 
-                  {/* Sección de Precios */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Precios</h3>
-
-                    {/* Precios de Compra */}
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-medium text-gray-700">Precios de Compra</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="precioCompra" className="text-sm font-medium text-gray-700">
-                            Por Unidad *
-                          </Label>
-                          <Input
-                            id="precioCompra"
-                            type="number"
-                            step="0.01"
-                            value={createForm.precioCompra}
-                            onChange={(e) => setCreateForm({ ...createForm, precioCompra: e.target.value })}
-                            placeholder="0.00"
-                            className="text-right"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="precioCompraCaja" className="text-sm font-medium text-gray-700">
-                            Por Caja
-                          </Label>
-                          <Input
-                            id="precioCompraCaja"
-                            type="number"
-                            step="0.01"
-                            value={createForm.precioCompraCaja}
-                            onChange={(e) => setCreateForm({ ...createForm, precioCompraCaja: e.target.value })}
-                            placeholder="0.00"
-                            className="text-right"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="precioCompraUnidad" className="text-sm font-medium text-gray-700">
-                            Unidad en Caja
-                          </Label>
-                          <Input
-                            id="precioCompraUnidad"
-                            type="number"
-                            step="0.01"
-                            value={createForm.precioCompraUnidad}
-                            onChange={(e) => setCreateForm({ ...createForm, precioCompraUnidad: e.target.value })}
-                            placeholder="0.00"
-                            className="text-right"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Precios de Venta */}
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-medium text-gray-700">Precios de Venta</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="precio" className="text-sm font-medium text-gray-700">
-                            Por Unidad *
-                          </Label>
-                          <Input
-                            id="precio"
-                            type="number"
-                            step="0.01"
-                            value={createForm.precio}
-                            onChange={(e) => setCreateForm({ ...createForm, precio: e.target.value })}
-                            placeholder="0.00"
-                            className="text-right"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="precioCaja" className="text-sm font-medium text-gray-700">
-                            Por Caja
-                          </Label>
-                          <Input
-                            id="precioCaja"
-                            type="number"
-                            step="0.01"
-                            value={createForm.precioCaja}
-                            onChange={(e) => setCreateForm({ ...createForm, precioCaja: e.target.value })}
-                            placeholder="0.00"
-                            className="text-right"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="precioUnidad" className="text-sm font-medium text-gray-700">
-                            Unidad en Caja
-                          </Label>
-                          <Input
-                            id="precioUnidad"
-                            type="number"
-                            step="0.01"
-                            value={createForm.precioUnidad}
-                            onChange={(e) => setCreateForm({ ...createForm, precioUnidad: e.target.value })}
-                            placeholder="0.00"
-                            className="text-right"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Sección de Inventario */}
+                  {/* Sección de Control de Inventario */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Control de Inventario</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="stockCajas" className="text-sm font-medium text-gray-700">
-                          Cajas *
+                          Cajas Completas *
                         </Label>
                         <Input
                           id="stockCajas"
@@ -689,6 +630,144 @@ export default function InventoryPage() {
                         placeholder="0"
                         className="text-right"
                       />
+                    </div>
+                  </div>
+
+                  {/* Sección de Precios y Ganancias */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-gray-900 border-b pb-2">Precios y Márgenes de Ganancia</h3>
+
+                    {/* Precios de Compra */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-gray-700">Precios de Compra</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="precioCompraCaja" className="text-sm font-medium text-gray-700">
+                            Por Caja Completa
+                          </Label>
+                          <Input
+                            id="precioCompraCaja"
+                            type="text"
+                            value={createForm.precioCompraCaja}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (/^\d*\.?\d*$/.test(value)) { // Solo números y punto decimal
+                                setCreateForm({ ...createForm, precioCompraCaja: value });
+                              }
+                            }}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="precioCompra" className="text-sm font-medium text-gray-700">
+                            Por Unidad *
+                          </Label>
+                          <Input
+                            id="precioCompra"
+                            type="text"
+                            value={createForm.precioCompra}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (/^\d*\.?\d*$/.test(value)) { // Solo números y punto decimal
+                                setCreateForm({ ...createForm, precioCompra: value });
+                              }
+                            }}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Márgenes de Ganancia */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-gray-700">Porcentaje de Ganancia (%)</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="margenGananciaCaja" className="text-sm font-medium text-gray-700">
+                            Para Cajas Completas
+                          </Label>
+                          <Input
+                            id="margenGananciaCaja"
+                            type="text"
+                            value={createForm.margenGananciaCaja}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (/^\d*\.?\d*$/.test(value)) {
+                                setCreateForm({ ...createForm, margenGananciaCaja: value });
+                              }
+                            }}
+                            onBlur={() => updatePriceFromMargin('caja')}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="margenGananciaUnidad" className="text-sm font-medium text-gray-700">
+                            Para Unidades
+                          </Label>
+                          <Input
+                            id="margenGananciaUnidad"
+                            type="text"
+                            value={createForm.margenGananciaUnidad}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (/^\d*\.?\d*$/.test(value)) {
+                                setCreateForm({ ...createForm, margenGananciaUnidad: value });
+                              }
+                            }}
+                            onBlur={() => updatePriceFromMargin('unidad')}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Precios de Venta */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-gray-700">Precios de Venta</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="precioCaja" className="text-sm font-medium text-gray-700">
+                            Por Caja Completa
+                          </Label>
+                          <Input
+                            id="precioCaja"
+                            type="text"
+                            value={createForm.precioCaja}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (/^\d*\.?\d*$/.test(value)) { // Solo números y punto decimal
+                                setCreateForm({ ...createForm, precioCaja: value });
+                                updateMarginFromPrice('caja');
+                              }
+                            }}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="precio" className="text-sm font-medium text-gray-700">
+                            Por Unidad *
+                          </Label>
+                          <Input
+                            id="precio"
+                            type="text"
+                            value={createForm.precio}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (/^\d*\.?\d*$/.test(value)) { // Solo números y punto decimal
+                                setCreateForm({ ...createForm, precio: value });
+                                updateMarginFromPrice('unidad');
+                              }
+                            }}
+                            placeholder="0.00"
+                            className="text-right"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -907,45 +986,39 @@ export default function InventoryPage() {
                 {/* Precios de Compra */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-gray-700">Precios de Compra</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="edit-precioCompra" className="text-sm font-medium text-gray-700">
                         Por Unidad *
                       </Label>
                       <Input
                         id="edit-precioCompra"
-                        type="number"
-                        step="0.01"
+                        type="text"
                         value={createForm.precioCompra}
-                        onChange={(e) => setCreateForm({ ...createForm, precioCompra: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (/^\d*\.?\d*$/.test(value)) { // Solo números y punto decimal
+                            setCreateForm({ ...createForm, precioCompra: value });
+                          }
+                        }}
                         placeholder="0.00"
                         className="text-right"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edit-precioCompraCaja" className="text-sm font-medium text-gray-700">
-                        Por Caja
+                        Por Caja Completa
                       </Label>
                       <Input
                         id="edit-precioCompraCaja"
-                        type="number"
-                        step="0.01"
+                        type="text"
                         value={createForm.precioCompraCaja}
-                        onChange={(e) => setCreateForm({ ...createForm, precioCompraCaja: e.target.value })}
-                        placeholder="0.00"
-                        className="text-right"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-precioCompraUnidad" className="text-sm font-medium text-gray-700">
-                        Unidad en Caja
-                      </Label>
-                      <Input
-                        id="edit-precioCompraUnidad"
-                        type="number"
-                        step="0.01"
-                        value={createForm.precioCompraUnidad}
-                        onChange={(e) => setCreateForm({ ...createForm, precioCompraUnidad: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (/^\d*\.?\d*$/.test(value)) { // Solo números y punto decimal
+                            setCreateForm({ ...createForm, precioCompraCaja: value });
+                          }
+                        }}
                         placeholder="0.00"
                         className="text-right"
                       />
@@ -956,45 +1029,39 @@ export default function InventoryPage() {
                 {/* Precios de Venta */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-gray-700">Precios de Venta</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="edit-precio" className="text-sm font-medium text-gray-700">
                         Por Unidad *
                       </Label>
                       <Input
                         id="edit-precio"
-                        type="number"
-                        step="0.01"
+                        type="text"
                         value={createForm.precio}
-                        onChange={(e) => setCreateForm({ ...createForm, precio: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (/^\d*\.?\d*$/.test(value)) { // Solo números y punto decimal
+                            setCreateForm({ ...createForm, precio: value });
+                          }
+                        }}
                         placeholder="0.00"
                         className="text-right"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edit-precioCaja" className="text-sm font-medium text-gray-700">
-                        Por Caja
+                        Por Caja Completa
                       </Label>
                       <Input
                         id="edit-precioCaja"
-                        type="number"
-                        step="0.01"
+                        type="text"
                         value={createForm.precioCaja}
-                        onChange={(e) => setCreateForm({ ...createForm, precioCaja: e.target.value })}
-                        placeholder="0.00"
-                        className="text-right"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-precioUnidad" className="text-sm font-medium text-gray-700">
-                        Unidad en Caja
-                      </Label>
-                      <Input
-                        id="edit-precioUnidad"
-                        type="number"
-                        step="0.01"
-                        value={createForm.precioUnidad}
-                        onChange={(e) => setCreateForm({ ...createForm, precioUnidad: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (/^\d*\.?\d*$/.test(value)) { // Solo números y punto decimal
+                            setCreateForm({ ...createForm, precioCaja: value });
+                          }
+                        }}
                         placeholder="0.00"
                         className="text-right"
                       />
